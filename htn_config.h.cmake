@@ -1,0 +1,1 @@
+#define @WEBRTC_POSIX_OR_WIN@ 1
