@@ -6,24 +6,38 @@
 #
 
 # ============================================================================
-# WebRTC root directories
+# WebRTC root and default library directory
 # ============================================================================
 
-if (NOT WEBRTC_ROOT_DIR)
-  set(WEBRTC_ROOT_DIR
-    ${PROJECT_SOURCE_DIR}/../deps/webrtc/src
-    CACHE PATH
-    "WebRTC root directory."
-    )
-endif()
+set(WEBRTC_ROOT_DIR
+  ${PROJECT_SOURCE_DIR}/../deps/webrtc/src
+  CACHE PATH
+  "WebRTC root directory."
+  )
 
-if (NOT WEBRTC_LIBRARY_DIR)
-  set(WEBRTC_LIBRARY_DIR
-    ${WEBRTC_ROOT_DIR}/out/lib
-    CACHE PATH
-    "WebRTC library directory that contaions webrtcm.lib or libwebrtcm.a"
-    )
-endif()
+set(WEBRTC_LIBRARY_DIR
+  ${WEBRTC_ROOT_DIR}/out/Release
+  CACHE PATH
+  "WebRTC release library directory that contaions webrtcm.lib or libwebrtcm.a"
+  )
+
+set(WEBRTC_DEBUG_LIBRARY_DIR
+  ${WEBRTC_ROOT_DIR}/out/Debug
+  CACHE PATH
+  "WebRTC debug library directory that contaions webrtcm.lib or libwebrtcm.a"
+  )
+
+
+# ============================================================================
+# Find WebRTC header directory
+# ============================================================================
+
+find_path(WEBRTC_INCLUDE_DIR
+  NAMES
+  	webrtc/config.h
+  PATHS
+  	${WEBRTC_ROOT_DIR}
+  )
 
 
 # ============================================================================
@@ -32,25 +46,45 @@ endif()
 #   libyuv.lib or libyuv.a
 # ============================================================================
 
-find_library(_WEBRTC_LIB_PATH
+find_library(_WEBRTC_RELEASE_LIB_PATH
   NAMES webrtcm libwebrtcm
-  PATHS ${WEBRTC_LIBRARY_DIR}
-  )
+  PATHS 
+    ${WEBRTC_LIBRARY_DIR}
+)
 
-find_library(_YUV_LIB_PATH
+find_library(_YUV_RELEASE_LIB_PATH
   NAMES yuv libyuv
-  PATHS ${WEBRTC_LIBRARY_DIR}
+  PATHS
+    ${WEBRTC_LIBRARY_DIR}
   )
 
-set( WEBRTC_LIBRARIES
-  "${_WEBRTC_LIB_PATH}"
-  "${_YUV_LIB_PATH}"
+find_library(_WEBRTC_DEBUG_LIB_PATH
+    NAMES webrtcm libwebrtcm
+    PATHS
+      ${WEBRTC_DEBUG_LIBRARY_DIR}
+      ${WEBRTC_LIBRARY_DIR}
+    )
+
+find_library(_YUV_DEBUG_LIB_PATH
+  NAMES yuv libyuv
+  PATHS
+    ${WEBRTC_DEBUG_LIBRARY_DIR}
+    ${WEBRTC_LIBRARY_DIR}
   )
 
+list(APPEND
+  WEBRTC_LIBRARIES
+  optimized ${_WEBRTC_RELEASE_LIB_PATH}
+  optimized ${_YUV_RELEASE_LIB_PATH}
+  debug ${_WEBRTC_DEBUG_LIB_PATH}
+  debug ${_YUV_DEBUG_LIB_PATH}
+  )
+  
 if(WIN32 AND MSVC)
-  list(APPEND WEBRTC_LIBRARIES
-    Secur32.lib Winmm.lib msdmo.lib dmoguids.lib wmcodecdspuuid.lib
-    wininet.lib dnsapi.lib version.lib ws2_32.lib
+  list(APPEND
+    WEBRTC_LIBRARIES
+      Secur32.lib Winmm.lib msdmo.lib dmoguids.lib wmcodecdspuuid.lib
+      wininet.lib dnsapi.lib version.lib ws2_32.lib
     )
 endif()
 
@@ -69,23 +103,13 @@ if(UNIX)
     )
 endif()
 
-# ============================================================================
-# Find WebRTC header directory
-# ============================================================================
-
-find_path(WEBRTC_INCLUDE_DIR
-  NAMES
-  	webrtc/config.h
-  PATHS
-  	${WEBRTC_ROOT_DIR}
-  )
 
 
 # ============================================================================
 # Validation
 # ============================================================================
 
-if (WEBRTC_INCLUDE_DIR AND WEBRTC_LIBRARIES)
+if (WEBRTC_INCLUDE_DIR AND _WEBRTC_RELEASE_LIB_PATH)
   set(WEBRTC_FOUND 1)
 else()
   set(WEBRTC_FOUND 0)

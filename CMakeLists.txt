@@ -104,9 +104,8 @@ include_directories(
   )
 
 add_executable(htunnel ${HEADERS} ${SOURCES})
-install (TARGETS htunnel DESTINATION bin)
-
 target_link_libraries(htunnel
   ${WEBRTC_LIBRARIES}
   )
 
+install (TARGETS htunnel DESTINATION bin)
