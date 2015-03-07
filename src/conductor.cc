@@ -384,18 +384,18 @@ void Conductor::AddStreams() {
       peer_connection_factory_->CreateAudioTrack(
           kAudioLabel, peer_connection_factory_->CreateAudioSource(NULL)));
 
-  rtc::scoped_refptr<webrtc::VideoTrackInterface> video_track(
-      peer_connection_factory_->CreateVideoTrack(
-          kVideoLabel,
-          peer_connection_factory_->CreateVideoSource(OpenVideoCaptureDevice(),
-                                                      NULL)));
-  main_wnd_->StartLocalRenderer(video_track);
+  //rtc::scoped_refptr<webrtc::VideoTrackInterface> video_track(
+  //    peer_connection_factory_->CreateVideoTrack(
+  //        kVideoLabel,
+  //        peer_connection_factory_->CreateVideoSource(OpenVideoCaptureDevice(),
+  //                                                    NULL)));
+  //main_wnd_->StartLocalRenderer(video_track);
 
   rtc::scoped_refptr<webrtc::MediaStreamInterface> stream =
       peer_connection_factory_->CreateLocalMediaStream(kStreamLabel);
 
   stream->AddTrack(audio_track);
-  stream->AddTrack(video_track);
+  //stream->AddTrack(video_track);
   if (!peer_connection_->AddStream(stream)) {
     LOG(LS_ERROR) << "Adding stream to PeerConnection failed";
   }
