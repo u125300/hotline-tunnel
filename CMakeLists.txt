@@ -73,7 +73,7 @@ elseif (WIN32)
 endif()
 
 add_definitions(-DUNICODE -D_UNICODE)
-
+add_definitions(${WEBRTC_DEFINES})
 
 # ============================================================================
 # Generate the config.h that includes all the compilation settings.
@@ -88,10 +88,19 @@ configure_file(
 # ============================================================================
 set(HEADERS
   "${PROJECT_BINARY_DIR}/htn_config.h"
+  "src/main_wnd.h"
+  "src/conductor.h"
+  "src/defaults.h"
+  "src/flagdefs.h"
+  "src/peer_connection_client.h"
   )
 
 set(SOURCES
   "src/main.cc"
+  "src/main_wnd.cc"
+  "src/conductor.cc"
+  "src/defaults.cc"
+  "src/peer_connection_client.cc"
   )
 
 # ============================================================================
@@ -101,9 +110,15 @@ set(SOURCES
 include_directories(
   "${PROJECT_BINARY_DIR}"
   "${WEBRTC_INCLUDE_DIR}"
+  "${WEBRTC_INCLUDE_DIR}/webrtc"
+  "${WEBRTC_INCLUDE_DIR}/third_party"
+  "${WEBRTC_INCLUDE_DIR}/third_party/webrtc"
+  "${WEBRTC_INCLUDE_DIR}/third_party/wtl/include"
+  "${WEBRTC_INCLUDE_DIR}/third_party/jsoncpp/overrides/include"
+  "${WEBRTC_INCLUDE_DIR}/third_party/jsoncpp/source/include"
   )
 
-add_executable(htunnel ${HEADERS} ${SOURCES})
+add_executable(htunnel WIN32 ${HEADERS} ${SOURCES})
 target_link_libraries(htunnel
   ${WEBRTC_LIBRARIES}
   )
