@@ -15,6 +15,7 @@
 const char kAudioLabel[] = "audio_label";
 const char kVideoLabel[] = "video_label";
 const char kStreamLabel[] = "stream_label";
+const char kDataLabel[] = "socket_tunnel_label";
 const uint16 kDefaultServerPort = 8888;
 
 std::string GetEnvVarOrDefault(const char* env_var_name,

@@ -23,6 +23,9 @@ namespace cricket {
 class VideoRenderer;
 }  // namespace cricket
 
+
+class HotineDataChannelObserver;
+
 class Conductor
   : public webrtc::PeerConnectionObserver,
     public webrtc::CreateSessionDescriptionObserver,
@@ -51,6 +54,7 @@ class Conductor
   void DeletePeerConnection();
   void EnsureStreamingUI();
   void AddStreams();
+  void AddDataChannels();
   cricket::VideoCapturer* OpenVideoCaptureDevice();
 
   //
@@ -60,7 +64,7 @@ class Conductor
       webrtc::PeerConnectionObserver::StateType state_changed) {}
   virtual void OnAddStream(webrtc::MediaStreamInterface* stream);
   virtual void OnRemoveStream(webrtc::MediaStreamInterface* stream);
-  virtual void OnDataChannel(webrtc::DataChannelInterface* channel) {}
+  virtual void OnDataChannel(webrtc::DataChannelInterface* channel);
   virtual void OnRenegotiationNeeded() {}
   virtual void OnIceChange() {}
   virtual void OnIceCandidate(const webrtc::IceCandidateInterface* candidate);
@@ -115,7 +119,44 @@ class Conductor
   std::deque<std::string*> pending_messages_;
   std::map<std::string, rtc::scoped_refptr<webrtc::MediaStreamInterface> >
       active_streams_;
+  std::map < std::string, rtc::scoped_refptr<HotineDataChannelObserver> >
+      send_datachannels_;
+  std::map < std::string, rtc::scoped_refptr<HotineDataChannelObserver> >
+      recv_datachannels_;
   std::string server_;
+};
+
+
+// HotlineDataChnnelObserver
+// Observe data channel statechange including open, close and message incoming from peer.
+// Create instance per data channel because OnStateChange() and OnMessage() has 
+// no input webrtc::DataChannelInterface pointer argument.
+//
+class HotineDataChannelObserver
+  : public webrtc::DataChannelObserver,
+    public rtc::RefCountInterface {
+public:
+
+  explicit HotineDataChannelObserver(webrtc::DataChannelInterface* channel)
+    : channel_(channel), received_message_count_(0) {
+    channel_->RegisterObserver(this);
+    state_ = channel_->state();
+  }
+
+  virtual ~HotineDataChannelObserver() {
+    channel_->UnregisterObserver();
+  }
+
+  virtual void OnStateChange();
+  virtual void OnMessage(const webrtc::DataBuffer& buffer);
+
+  bool IsOpen() const { return state_ == webrtc::DataChannelInterface::kOpen; }
+  size_t received_message_count() const { return received_message_count_; }
+
+protected:
+  rtc::scoped_refptr<webrtc::DataChannelInterface> channel_;
+  webrtc::DataChannelInterface::DataState state_;
+  size_t received_message_count_;
 };
 
 #endif  // TALK_EXAMPLES_PEERCONNECTION_CLIENT_CONDUCTOR_H_

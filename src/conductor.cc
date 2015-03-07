@@ -83,7 +83,17 @@ bool Conductor::InitializePeerConnection() {
         "CreatePeerConnection failed", true);
     DeletePeerConnection();
   }
+  
   AddStreams();
+  
+  //
+  // Create new data channel when initializing peer.
+  //
+
+  AddDataChannels();
+
+  main_wnd_->SwitchToStreamingUI();
+
   return peer_connection_.get() != NULL;
 }
 
@@ -127,6 +137,8 @@ bool Conductor::CreatePeerConnection(bool dtls) {
 void Conductor::DeletePeerConnection() {
   peer_connection_ = NULL;
   active_streams_.clear();
+  send_datachannels_.clear();
+  recv_datachannels_.clear();
   main_wnd_->StopLocalRenderer();
   main_wnd_->StopRemoteRenderer();
   peer_connection_factory_ = NULL;
@@ -161,6 +173,23 @@ void Conductor::OnRemoveStream(webrtc::MediaStreamInterface* stream) {
   main_wnd_->QueueUIThreadCallback(STREAM_REMOVED,
                                    stream);
 }
+
+// Remote peer created data channel.
+// So, store it to recv_datachannels.
+void Conductor::OnDataChannel(webrtc::DataChannelInterface* channel) {
+  LOG(INFO) << __FUNCTION__;
+
+  rtc::scoped_refptr<HotineDataChannelObserver> data_channel_observer(
+    new rtc::RefCountedObject<HotineDataChannelObserver>(channel));
+
+  typedef std::pair<std::string,
+    rtc::scoped_refptr<HotineDataChannelObserver> >
+    DataChannelObserverPair;
+
+  recv_datachannels_.insert(DataChannelObserverPair(channel->label(), data_channel_observer));
+}
+
+
 
 void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
   LOG(INFO) << __FUNCTION__ << " " << candidate->sdp_mline_index();
@@ -403,8 +432,37 @@ void Conductor::AddStreams() {
                     rtc::scoped_refptr<webrtc::MediaStreamInterface> >
       MediaStreamPair;
   active_streams_.insert(MediaStreamPair(stream->label(), stream));
-  main_wnd_->SwitchToStreamingUI();
 }
+
+
+//
+// Add data channels to send
+//
+
+void Conductor::AddDataChannels() {
+
+  if (send_datachannels_.find(kDataLabel) != send_datachannels_.end())
+    return;  // Already added.
+
+  rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
+    peer_connection_->CreateDataChannel(kDataLabel, NULL);
+
+  if (data_channel.get() == NULL) {
+    LOG(LS_ERROR) << "CreateDataChannel to PeerConnection failed";
+    return;
+  }
+
+  rtc::scoped_refptr<HotineDataChannelObserver> data_channel_observer(
+    new rtc::RefCountedObject<HotineDataChannelObserver>(data_channel));
+
+
+  typedef std::pair<std::string,
+    rtc::scoped_refptr<HotineDataChannelObserver> >
+    DataChannelObserverPair;
+
+  send_datachannels_.insert(DataChannelObserverPair(data_channel->label(), data_channel_observer));
+}
+
 
 void Conductor::DisconnectFromCurrentPeer() {
   LOG(INFO) << __FUNCTION__;
@@ -424,6 +482,8 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
       DeletePeerConnection();
 
       ASSERT(active_streams_.empty());
+      ASSERT(send_datachannels_.empty());
+      ASSERT(recv_datachannels_.empty());
 
       if (main_wnd_->IsWindow()) {
         if (client_->is_connected()) {
@@ -523,4 +583,31 @@ void Conductor::OnFailure(const std::string& error) {
 void Conductor::SendMessage(const std::string& json_object) {
   std::string* msg = new std::string(json_object);
   main_wnd_->QueueUIThreadCallback(SEND_MESSAGE_TO_PEER, msg);
+}
+
+
+
+
+void HotineDataChannelObserver::OnStateChange() {
+  
+  state_ = channel_->state();
+
+  if (state_ == webrtc::DataChannelInterface::kOpen){
+    LOG(INFO) << __FUNCTION__ << " " << " data channel has been openned.";
+  }
+  else if (state_ == webrtc::DataChannelInterface::kClosed) {
+    LOG(INFO) << __FUNCTION__ << " " << " data channel has been closed.";
+  }
+  else if (state_ == webrtc::DataChannelInterface::kConnecting) {
+    LOG(INFO) << __FUNCTION__ << " " << " data channel is connecting.";
+  }
+  else if (state_ == webrtc::DataChannelInterface::kClosing) {
+    LOG(INFO) << __FUNCTION__ << " " << " data channel is closing.";
+  }
+}
+
+
+void HotineDataChannelObserver::OnMessage(const webrtc::DataBuffer& buffer) {
+  ++received_message_count_;
+  LOG(INFO) << __FUNCTION__ << " " << " received_message_count_ = " << received_message_count_;
 }
