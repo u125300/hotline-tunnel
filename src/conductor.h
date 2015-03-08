@@ -53,7 +53,6 @@ class Conductor
   bool CreatePeerConnection(bool dtls);
   void DeletePeerConnection();
   void EnsureStreamingUI();
-  void AddStreams();
   void AddDataChannels();
   cricket::VideoCapturer* OpenVideoCaptureDevice();
 
@@ -117,8 +116,6 @@ class Conductor
   PeerConnectionClient* client_;
   MainWindow* main_wnd_;
   std::deque<std::string*> pending_messages_;
-  std::map<std::string, rtc::scoped_refptr<webrtc::MediaStreamInterface> >
-      active_streams_;
   std::map < std::string, rtc::scoped_refptr<HotineDataChannelObserver> >
       send_datachannels_;
   std::map < std::string, rtc::scoped_refptr<HotineDataChannelObserver> >

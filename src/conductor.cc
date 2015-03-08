@@ -84,8 +84,6 @@ bool Conductor::InitializePeerConnection() {
     DeletePeerConnection();
   }
   
-  AddStreams();
-  
   //
   // Create new data channel when initializing peer.
   //
@@ -136,7 +134,6 @@ bool Conductor::CreatePeerConnection(bool dtls) {
 
 void Conductor::DeletePeerConnection() {
   peer_connection_ = NULL;
-  active_streams_.clear();
   send_datachannels_.clear();
   recv_datachannels_.clear();
   main_wnd_->StopLocalRenderer();
@@ -405,35 +402,6 @@ cricket::VideoCapturer* Conductor::OpenVideoCaptureDevice() {
   return capturer;
 }
 
-void Conductor::AddStreams() {
-  if (active_streams_.find(kStreamLabel) != active_streams_.end())
-    return;  // Already added.
-
-  rtc::scoped_refptr<webrtc::AudioTrackInterface> audio_track(
-      peer_connection_factory_->CreateAudioTrack(
-          kAudioLabel, peer_connection_factory_->CreateAudioSource(NULL)));
-
-  //rtc::scoped_refptr<webrtc::VideoTrackInterface> video_track(
-  //    peer_connection_factory_->CreateVideoTrack(
-  //        kVideoLabel,
-  //        peer_connection_factory_->CreateVideoSource(OpenVideoCaptureDevice(),
-  //                                                    NULL)));
-  //main_wnd_->StartLocalRenderer(video_track);
-
-  rtc::scoped_refptr<webrtc::MediaStreamInterface> stream =
-      peer_connection_factory_->CreateLocalMediaStream(kStreamLabel);
-
-  stream->AddTrack(audio_track);
-  //stream->AddTrack(video_track);
-  if (!peer_connection_->AddStream(stream)) {
-    LOG(LS_ERROR) << "Adding stream to PeerConnection failed";
-  }
-  typedef std::pair<std::string,
-                    rtc::scoped_refptr<webrtc::MediaStreamInterface> >
-      MediaStreamPair;
-  active_streams_.insert(MediaStreamPair(stream->label(), stream));
-}
-
 
 //
 // Add data channels to send
@@ -481,7 +449,6 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
       LOG(INFO) << "PEER_CONNECTION_CLOSED";
       DeletePeerConnection();
 
-      ASSERT(active_streams_.empty());
       ASSERT(send_datachannels_.empty());
       ASSERT(recv_datachannels_.empty());
 
