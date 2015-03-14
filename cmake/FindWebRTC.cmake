@@ -85,7 +85,7 @@ if(WIN32 AND MSVC)
   list(APPEND
     WEBRTC_LIBRARIES
       Secur32.lib Winmm.lib msdmo.lib dmoguids.lib wmcodecdspuuid.lib
-      wininet.lib dnsapi.lib version.lib ws2_32.lib
+      wininet.lib dnsapi.lib version.lib ws2_32.lib Strmiids.lib
     )
 endif()
 

@@ -91,6 +91,7 @@ set(HEADERS
   "src/main_wnd.h"
   "src/conductor.h"
   "src/defaults.h"
+  "src/socket_listening.h"
   "src/flagdefs.h"
   "src/peer_connection_client.h"
   )
@@ -100,6 +101,7 @@ set(SOURCES
   "src/main_wnd.cc"
   "src/conductor.cc"
   "src/defaults.cc"
+  "src/socket_listening.cc"
   "src/peer_connection_client.cc"
   )
 

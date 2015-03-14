@@ -43,10 +43,11 @@ class DummySetSessionDescriptionObserver
   ~DummySetSessionDescriptionObserver() {}
 };
 
-Conductor::Conductor(PeerConnectionClient* client, MainWindow* main_wnd)
+Conductor::Conductor(PeerConnectionClient* client, SocketListening *socket_listening, MainWindow* main_wnd)
   : peer_id_(-1),
     loopback_(false),
     client_(client),
+    socket_listening_(socket_listening),
     main_wnd_(main_wnd) {
   client_->RegisterObserver(this);
   main_wnd->RegisterObserver(this);

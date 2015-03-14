@@ -9,11 +9,13 @@
 #include <set>
 #include <string>
 
+#include "webrtc/base/scoped_ptr.h"
 #include "talk/app/webrtc/mediastreaminterface.h"
 #include "talk/app/webrtc/peerconnectioninterface.h"
 #include "main_wnd.h"
 #include "peer_connection_client.h"
-#include "webrtc/base/scoped_ptr.h"
+#include "socket_listening.h"
+
 
 namespace webrtc {
 class VideoCaptureModule;
@@ -25,6 +27,7 @@ class VideoRenderer;
 
 
 class HotineDataChannelObserver;
+
 
 class Conductor
   : public webrtc::PeerConnectionObserver,
@@ -40,7 +43,7 @@ class Conductor
     STREAM_REMOVED,
   };
 
-  Conductor(PeerConnectionClient* client, MainWindow* main_wnd);
+  Conductor(PeerConnectionClient* client, SocketListening *socket_listening, MainWindow* main_wnd);
 
   bool connection_active() const;
 
@@ -67,6 +70,7 @@ class Conductor
   virtual void OnRenegotiationNeeded() {}
   virtual void OnIceChange() {}
   virtual void OnIceCandidate(const webrtc::IceCandidateInterface* candidate);
+
 
   //
   // PeerConnectionClientObserver implementation.
@@ -114,6 +118,7 @@ class Conductor
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
       peer_connection_factory_;
   PeerConnectionClient* client_;
+  SocketListening* socket_listening_;
   MainWindow* main_wnd_;
   std::deque<std::string*> pending_messages_;
   std::map < std::string, rtc::scoped_refptr<HotineDataChannelObserver> >
@@ -155,5 +160,8 @@ protected:
   webrtc::DataChannelInterface::DataState state_;
   size_t received_message_count_;
 };
+
+
+
 
 #endif  // TALK_EXAMPLES_PEERCONNECTION_CLIENT_CONDUCTOR_H_
