@@ -2,7 +2,7 @@
 #include "conductor.h"
 #include "flagdefs.h"
 #include "main_wnd.h"
-#include "socket_listening.h"
+#include "socket_connection.h"
 #include "peer_connection_client.h"
 #include "webrtc/base/ssladapter.h"
 #include "webrtc/base/win32socketinit.h"
@@ -40,10 +40,10 @@ int PASCAL wWinMain(HINSTANCE instance, HINSTANCE prev_instance,
 
   rtc::InitializeSSL();
   PeerConnectionClient client;
-  SocketListening socket_listening;
+  SocketConnection socket_connection;
 
   rtc::scoped_refptr<Conductor> conductor(
-    new rtc::RefCountedObject<Conductor>(&client, &socket_listening, &wnd));
+    new rtc::RefCountedObject<Conductor>(&client, &socket_connection, &wnd));
 
 
   // Main loop.

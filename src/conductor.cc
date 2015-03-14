@@ -43,13 +43,14 @@ class DummySetSessionDescriptionObserver
   ~DummySetSessionDescriptionObserver() {}
 };
 
-Conductor::Conductor(PeerConnectionClient* client, SocketListening *socket_listening, MainWindow* main_wnd)
+Conductor::Conductor(PeerConnectionClient* client, SocketConnection *socket_connection, MainWindow* main_wnd)
   : peer_id_(-1),
     loopback_(false),
     client_(client),
-    socket_listening_(socket_listening),
+    socket_connection_(socket_connection),
     main_wnd_(main_wnd) {
   client_->RegisterObserver(this);
+  socket_connection_->RegisterObserver(this);
   main_wnd->RegisterObserver(this);
 }
 
@@ -85,12 +86,6 @@ bool Conductor::InitializePeerConnection() {
     DeletePeerConnection();
   }
   
-  //
-  // Create new data channel when initializing peer.
-  //
-
-  AddDataChannels();
-
   main_wnd_->SwitchToStreamingUI();
 
   return peer_connection_.get() != NULL;
@@ -212,6 +207,8 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
   jmessage[kCandidateSdpName] = sdp;
   SendMessage(writer.write(jmessage));
 }
+
+
 
 //
 // PeerConnectionClientObserver implementation.
@@ -381,40 +378,18 @@ void Conductor::ConnectToPeer(int peer_id) {
   }
 }
 
-cricket::VideoCapturer* Conductor::OpenVideoCaptureDevice() {
-  rtc::scoped_ptr<cricket::DeviceManagerInterface> dev_manager(
-      cricket::DeviceManagerFactory::Create());
-  if (!dev_manager->Init()) {
-    LOG(LS_ERROR) << "Can't create device manager";
-    return NULL;
-  }
-  std::vector<cricket::Device> devs;
-  if (!dev_manager->GetVideoCaptureDevices(&devs)) {
-    LOG(LS_ERROR) << "Can't enumerate video devices";
-    return NULL;
-  }
-  std::vector<cricket::Device>::iterator dev_it = devs.begin();
-  cricket::VideoCapturer* capturer = NULL;
-  for (; dev_it != devs.end(); ++dev_it) {
-    capturer = dev_manager->CreateVideoCapturer(*dev_it);
-    if (capturer != NULL)
-      break;
-  }
-  return capturer;
-}
-
 
 //
 // Add data channels to send
 //
 
-void Conductor::AddDataChannels() {
+void Conductor::AddDataChannels(std::string& channel_name) {
 
-  if (send_datachannels_.find(kDataLabel) != send_datachannels_.end())
+  if (send_datachannels_.find(channel_name) != send_datachannels_.end())
     return;  // Already added.
 
   rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
-    peer_connection_->CreateDataChannel(kDataLabel, NULL);
+    peer_connection_->CreateDataChannel(channel_name, NULL);
 
   if (data_channel.get() == NULL) {
     LOG(LS_ERROR) << "CreateDataChannel to PeerConnection failed";

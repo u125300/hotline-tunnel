@@ -3,20 +3,36 @@
 #include "webrtc/base//common.h"
 #include "webrtc/base/thread.h"
 #include "webrtc/base/asyncudpsocket.h"
-#include "socket_listening.h"
+#include "socket_connection.h"
 
 #ifdef WIN32
 #include "webrtc/base/win32socketserver.h"
 #endif
 
-SocketListening::SocketListening() {
+SocketConnection::SocketConnection()
+  :callback_(NULL){
 }
 
-SocketListening::~SocketListening() {
+SocketConnection::~SocketConnection() {
 
 }
 
-bool SocketListening::Listen(cricket::ProtocolType proto,
+
+void SocketConnection::InitSocketSignals() {
+
+  // TODO: Not implemented yet
+
+}
+
+
+void SocketConnection::RegisterObserver(
+       SocketConnectionObserver* callback) {
+  ASSERT(!callback_);
+  callback_ = callback;
+}
+
+
+bool SocketConnection::Listen(cricket::ProtocolType proto,
   rtc::SocketAddress &address) {
 
   proto_ = proto;
@@ -28,7 +44,7 @@ bool SocketListening::Listen(cricket::ProtocolType proto,
 #ifdef WIN32
     rtc::Win32Socket* sock = new rtc::Win32Socket();
     sock->CreateT(address.family(), SOCK_DGRAM);
-    listener_.reset(sock);
+    listening_.reset(sock);
 #elif defined(POSIX)
     rtc::Thread* thread = rtc::Thread::Current();
     ASSERT(thread != NULL);
@@ -36,10 +52,10 @@ bool SocketListening::Listen(cricket::ProtocolType proto,
 #else
 #error Platform not supported.
 #endif
-    rtc::SocketStream *stream = new rtc::SocketStream(listener_.get());
+    rtc::SocketStream *stream = new rtc::SocketStream(listening_.get());
     if (stream == NULL) return false;
-    stream->SignalEvent.connect(this, &SocketListening::OnStreamEvent);
-    socket_streams_.push_back(rtc::scoped_ptr<rtc::SocketStream>(stream));
+    stream->SignalEvent.connect(this, &SocketConnection::OnStreamEvent);
+    streams_.push_back(rtc::scoped_ptr<rtc::SocketStream>(stream));
   }
 
   //
@@ -49,7 +65,7 @@ bool SocketListening::Listen(cricket::ProtocolType proto,
 #ifdef WIN32
     rtc::Win32Socket* sock = new rtc::Win32Socket();
     sock->CreateT(address.family(), SOCK_STREAM);
-    listener_.reset(sock);
+    listening_.reset(sock);
 #elif defined(POSIX)
     rtc::Thread* thread = rtc::Thread::Current();
     ASSERT(thread != NULL);
@@ -58,43 +74,41 @@ bool SocketListening::Listen(cricket::ProtocolType proto,
 #error Platform not supported.
 #endif
 
-    listener_->SignalReadEvent.connect(this, &SocketListening::OnNewConnection);
+    listening_->SignalReadEvent.connect(this, &SocketConnection::OnNewConnection);
 
-    if ((listener_->Bind(address) == SOCKET_ERROR) ||
-       (listener_->Listen(5) == SOCKET_ERROR)) {
+    if ((listening_->Bind(address) == SOCKET_ERROR) ||
+      (listening_->Listen(5) == SOCKET_ERROR)) {
       return false;
     }
 
-    if (listener_->GetError() != 0) return false;
+    if (listening_->GetError() != 0) return false;
   }
 
   return true;
 }
 
 
-void SocketListening::OnNewConnection(rtc::AsyncSocket* socket) {
+void SocketConnection::OnNewConnection(rtc::AsyncSocket* socket) {
   AcceptConnection(socket);
 }
 
 
-void SocketListening::AcceptConnection(rtc::AsyncSocket* server_socket) {
+void SocketConnection::AcceptConnection(rtc::AsyncSocket* server_socket) {
 
-  ASSERT(server_socket == listener_.get());
-  ASSERT(listener_);
+  ASSERT(server_socket == listening_.get());
+  ASSERT(listening_);
 
   rtc::AsyncSocket* accepted_socket = server_socket->Accept(NULL);
 
   if (accepted_socket) {
     rtc::SocketStream* stream = new rtc::SocketStream(accepted_socket);
-    stream->SignalEvent.connect(this, &SocketListening::OnStreamEvent);
-    socket_streams_.push_back(rtc::scoped_ptr<rtc::SocketStream>(stream));
-
+    stream->SignalEvent.connect(this, &SocketConnection::OnStreamEvent);
+    streams_.push_back(rtc::scoped_ptr<rtc::SocketStream>(stream));
   }
 }
 
 
-
-void SocketListening::OnStreamEvent(rtc::StreamInterface* stream,
+void SocketConnection::OnStreamEvent(rtc::StreamInterface* stream,
   int events, int error) {
 
   if (events & rtc::SE_OPEN) {
@@ -118,7 +132,7 @@ void SocketListening::OnStreamEvent(rtc::StreamInterface* stream,
 }
 
 
-void SocketListening::HandleStreamClose(rtc::StreamInterface* stream) {
+void SocketConnection::HandleStreamClose(rtc::StreamInterface* stream) {
   if (stream != NULL) {
     stream->Close();
   }
@@ -126,9 +140,9 @@ void SocketListening::HandleStreamClose(rtc::StreamInterface* stream) {
 
 
 bool
-SocketListening::DoReceiveLoop(rtc::StreamInterface* stream) {
+SocketConnection::DoReceiveLoop(rtc::StreamInterface* stream) {
 
-  // Not implemented
+  // TODO: Not implemented
 
   return false;
 }
@@ -136,8 +150,8 @@ SocketListening::DoReceiveLoop(rtc::StreamInterface* stream) {
 
 
 void
-SocketListening::flush_data() {
+SocketConnection::flush_data() {
 
-  // Not implemented
+  // TODO: Not implemented
 
 }

@@ -14,7 +14,7 @@
 #include "talk/app/webrtc/peerconnectioninterface.h"
 #include "main_wnd.h"
 #include "peer_connection_client.h"
-#include "socket_listening.h"
+#include "socket_connection.h"
 
 
 namespace webrtc {
@@ -32,6 +32,7 @@ class HotineDataChannelObserver;
 class Conductor
   : public webrtc::PeerConnectionObserver,
     public webrtc::CreateSessionDescriptionObserver,
+    public SocketConnectionObserver,
     public PeerConnectionClientObserver,
     public MainWndCallback {
  public:
@@ -43,7 +44,7 @@ class Conductor
     STREAM_REMOVED,
   };
 
-  Conductor(PeerConnectionClient* client, SocketListening *socket_listening, MainWindow* main_wnd);
+  Conductor(PeerConnectionClient* client, SocketConnection *socket_connection, MainWindow* main_wnd);
 
   bool connection_active() const;
 
@@ -56,8 +57,7 @@ class Conductor
   bool CreatePeerConnection(bool dtls);
   void DeletePeerConnection();
   void EnsureStreamingUI();
-  void AddDataChannels();
-  cricket::VideoCapturer* OpenVideoCaptureDevice();
+  void AddDataChannels(std::string& channel_name);
 
   //
   // PeerConnectionObserver implementation.
@@ -71,6 +71,14 @@ class Conductor
   virtual void OnIceChange() {}
   virtual void OnIceCandidate(const webrtc::IceCandidateInterface* candidate);
 
+  //
+  // SocketListeningObserver implementation.
+  //
+
+  virtual void OnSocketConnected() {};
+  virtual void OnSocketDisconnected() {};
+  virtual void OnMessageFromSocket() {};
+  virtual void OnMessageToSocket() {};
 
   //
   // PeerConnectionClientObserver implementation.
@@ -118,7 +126,7 @@ class Conductor
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
       peer_connection_factory_;
   PeerConnectionClient* client_;
-  SocketListening* socket_listening_;
+  SocketConnection* socket_connection_;
   MainWindow* main_wnd_;
   std::deque<std::string*> pending_messages_;
   std::map < std::string, rtc::scoped_refptr<HotineDataChannelObserver> >
