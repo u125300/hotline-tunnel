@@ -75,7 +75,7 @@ class Conductor
   // SocketListeningObserver implementation.
   //
 
-  virtual void OnSocketConnected() {};
+  virtual void OnSocketConnected();
   virtual void OnSocketDisconnected() {};
   virtual void OnMessageFromSocket() {};
   virtual void OnMessageToSocket() {};
@@ -133,6 +133,10 @@ class Conductor
       send_datachannels_;
   std::map < std::string, rtc::scoped_refptr<HotineDataChannelObserver> >
       recv_datachannels_;
+
+  long send_datachannel_serial_;
+  long recv_datachannel_serial_;
+
   std::string server_;
 };
 

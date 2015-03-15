@@ -48,6 +48,9 @@ Conductor::Conductor(PeerConnectionClient* client, SocketConnection *socket_conn
     loopback_(false),
     client_(client),
     socket_connection_(socket_connection),
+    send_datachannel_serial_(1),
+    recv_datachannel_serial_(1),
+
     main_wnd_(main_wnd) {
   client_->RegisterObserver(this);
   socket_connection_->RegisterObserver(this);
@@ -86,6 +89,7 @@ bool Conductor::InitializePeerConnection() {
     DeletePeerConnection();
   }
   
+  AddDataChannels(std::string(kDataLabel));
   main_wnd_->SwitchToStreamingUI();
 
   return peer_connection_.get() != NULL;
@@ -207,6 +211,18 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
   jmessage[kCandidateSdpName] = sdp;
   SendMessage(writer.write(jmessage));
 }
+
+//
+// SocketClientObserver implementation.
+//
+
+void Conductor::OnSocketConnected() {
+
+  std::string serial = std::to_string(send_datachannel_serial_++);
+  AddDataChannels(kDataPrefixLabel+std::string(serial));
+
+}
+
 
 
 

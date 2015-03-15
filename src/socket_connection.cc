@@ -9,6 +9,8 @@
 #include "webrtc/base/win32socketserver.h"
 #endif
 
+
+
 SocketConnection::SocketConnection()
   :callback_(NULL){
 }
@@ -104,6 +106,7 @@ void SocketConnection::AcceptConnection(rtc::AsyncSocket* server_socket) {
     rtc::SocketStream* stream = new rtc::SocketStream(accepted_socket);
     stream->SignalEvent.connect(this, &SocketConnection::OnStreamEvent);
     streams_.push_back(rtc::scoped_ptr<rtc::SocketStream>(stream));
+    callback_->OnSocketConnected();
   }
 }
 
