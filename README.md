@@ -1,3 +1,3 @@
 # hotline-tunnel
 
-Early stage. Features are not completely implemented yet.
+Early stage. Features are not implemented yet.

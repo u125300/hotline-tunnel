@@ -30,13 +30,13 @@ class SocketConnection : public sigslot::has_slots<>,
 public:
   typedef std::vector<rtc::scoped_ptr<rtc::SocketStream>> SocketStreams;
 
-  SocketConnection();
+  SocketConnection(bool server_mode);
+
   ~SocketConnection();
 
   void RegisterObserver(SocketConnectionObserver* callback);
 
-  bool Listen(cricket::ProtocolType proto,
-              rtc::SocketAddress &address);
+  bool Start(); // Start listening or connection depends on server_mode_
 
   // implements the MessageHandler interface
   void OnMessage(rtc::Message* msg) {}
@@ -50,6 +50,8 @@ protected:
   //
   // Listening socket
   //
+
+  bool AddListening(cricket::ProtocolType proto, rtc::SocketAddress bind_address);
 
   // tcp only
   void OnNewConnection(rtc::AsyncSocket* socket);
@@ -78,8 +80,8 @@ protected:
   rtc::scoped_ptr<rtc::AsyncSocket> listening_;
   rtc::scoped_ptr<rtc::AsyncSocket> connection_;
   SocketStreams streams_;
-  rtc::SocketAddress address_;
-  cricket::ProtocolType proto_;
+
+  bool server_mode_;
   char buffer_[kBufferSize];
   size_t len_;
 };

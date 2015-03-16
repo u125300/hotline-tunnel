@@ -11,8 +11,9 @@
 
 
 
-SocketConnection::SocketConnection()
-  :callback_(NULL){
+SocketConnection::SocketConnection( bool server_mode) :
+      callback_(NULL),
+      server_mode_(server_mode){
 }
 
 SocketConnection::~SocketConnection() {
@@ -34,10 +35,16 @@ void SocketConnection::RegisterObserver(
 }
 
 
-bool SocketConnection::Listen(cricket::ProtocolType proto,
-  rtc::SocketAddress &address) {
+bool SocketConnection::Start() {
+  // TODO: Not implemented yet
+  return false;
+}
 
-  proto_ = proto;
+
+  
+bool SocketConnection::AddListening(
+      cricket::ProtocolType proto,
+      rtc::SocketAddress bind_address ) {
 
   //
   // UDP socket
@@ -45,7 +52,7 @@ bool SocketConnection::Listen(cricket::ProtocolType proto,
   if (proto == cricket::PROTO_UDP) {
 #ifdef WIN32
     rtc::Win32Socket* sock = new rtc::Win32Socket();
-    sock->CreateT(address.family(), SOCK_DGRAM);
+    sock->CreateT(bind_address.family(), SOCK_DGRAM);
     listening_.reset(sock);
 #elif defined(POSIX)
     rtc::Thread* thread = rtc::Thread::Current();
@@ -66,7 +73,7 @@ bool SocketConnection::Listen(cricket::ProtocolType proto,
   else if (proto == cricket::PROTO_TCP) {
 #ifdef WIN32
     rtc::Win32Socket* sock = new rtc::Win32Socket();
-    sock->CreateT(address.family(), SOCK_STREAM);
+    sock->CreateT(bind_address.family(), SOCK_STREAM);
     listening_.reset(sock);
 #elif defined(POSIX)
     rtc::Thread* thread = rtc::Thread::Current();
@@ -78,7 +85,7 @@ bool SocketConnection::Listen(cricket::ProtocolType proto,
 
     listening_->SignalReadEvent.connect(this, &SocketConnection::OnNewConnection);
 
-    if ((listening_->Bind(address) == SOCKET_ERROR) ||
+    if ((listening_->Bind(bind_address) == SOCKET_ERROR) ||
       (listening_->Listen(5) == SOCKET_ERROR)) {
       return false;
     }
