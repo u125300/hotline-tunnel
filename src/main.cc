@@ -11,6 +11,7 @@
 #include "webrtc/base/ssladapter.h"
 #include "webrtc/base/win32socketinit.h"
 #include "webrtc/base/win32socketserver.h"
+#include "webrtc/base/logging.h"
 
 
 void Usage();
@@ -54,11 +55,18 @@ int PASCAL wWinMain(HINSTANCE instance, HINSTANCE prev_instance,
     std::string local_port = argv[1];
     std::string remote_port = argv[2];
 
-    if (!local_address.FromString(local_port))
-      FatalError(argv[1] + std::string(" is not a valid port or address"));
+    if (local_port.find(":") == std::string::npos) local_port = "0.0.0.0:"+local_port;
+    if (!local_address.FromString(local_port)) {
+      LOG(LS_ERROR) << argv[1] + std::string(" is not a valid port or address");
+      return -1;
+    }
 
-    if (!remote_address.FromString(remote_port))
-      FatalError(argv[2] + std::string(" is not a valid port or address"));
+    if (remote_port.find(":") == std::string::npos) remote_port = "0.0.0.0:" + remote_port;
+    if (!remote_address.FromString(remote_port)) {
+      LOG(LS_ERROR) << argv[1] + std::string(" is not a valid port or address");
+      return -1;
+    }
+
   }
 
   //
@@ -78,12 +86,21 @@ int PASCAL wWinMain(HINSTANCE instance, HINSTANCE prev_instance,
   rtc::InitializeSSL();
   PeerConnectionClient client;
   SocketConnection socket_connection(server_mode);
+  
+  if (server_mode) {
+    if (!socket_connection.SetServerMode()) return -1;
+  }
+  else {
+    if (!socket_connection.SetClientMode(local_address, remote_address, tunnel_key, protocol)) return -1;
+  }
 
   rtc::scoped_refptr<Conductor> conductor(
     new rtc::RefCountedObject<Conductor>(&client, &socket_connection, &wnd));
 
-
+  //
   // Main loop.
+  //
+
   MSG msg;
   BOOL gm;
   while ((gm = ::GetMessage(&msg, NULL, 0, 0)) != 0 && gm != -1) {

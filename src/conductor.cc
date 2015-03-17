@@ -4,13 +4,15 @@
 #include <utility>
 #include <vector>
 
-#include "defaults.h"
 #include "talk/app/webrtc/videosourceinterface.h"
 #include "talk/media/devices/devicemanager.h"
 #include "talk/app/webrtc/test/fakeconstraints.h"
 #include "webrtc/base/common.h"
 #include "webrtc/base/json.h"
 #include "webrtc/base/logging.h"
+#include "defaults.h"
+#include "data_channel.h"
+
 
 // Names used for a IceCandidate JSON object.
 const char kCandidateSdpMidName[] = "sdpMid";
@@ -48,8 +50,8 @@ Conductor::Conductor(PeerConnectionClient* client, SocketConnection *socket_conn
     loopback_(false),
     client_(client),
     socket_connection_(socket_connection),
-    send_datachannel_serial_(1),
-    recv_datachannel_serial_(1),
+    local_datachannel_serial_(1),
+    remote_datachannel_serial_(1),
 
     main_wnd_(main_wnd) {
   client_->RegisterObserver(this);
@@ -89,7 +91,7 @@ bool Conductor::InitializePeerConnection() {
     DeletePeerConnection();
   }
   
-  AddDataChannels(std::string(kDataLabel));
+  AddDataChannels(std::string(kMainDataLabel));
   main_wnd_->SwitchToStreamingUI();
 
   return peer_connection_.get() != NULL;
@@ -134,8 +136,8 @@ bool Conductor::CreatePeerConnection(bool dtls) {
 
 void Conductor::DeletePeerConnection() {
   peer_connection_ = NULL;
-  send_datachannels_.clear();
-  recv_datachannels_.clear();
+  local_datachannels_.clear();
+  remote_datachannels_.clear();
   main_wnd_->StopLocalRenderer();
   main_wnd_->StopRemoteRenderer();
   peer_connection_factory_ = NULL;
@@ -177,13 +179,13 @@ void Conductor::OnDataChannel(webrtc::DataChannelInterface* channel) {
   LOG(INFO) << __FUNCTION__;
 
   rtc::scoped_refptr<HotineDataChannelObserver> data_channel_observer(
-    new rtc::RefCountedObject<HotineDataChannelObserver>(channel));
+    new rtc::RefCountedObject<HotineDataChannelObserver>(channel, false));
 
   typedef std::pair<std::string,
     rtc::scoped_refptr<HotineDataChannelObserver> >
     DataChannelObserverPair;
 
-  recv_datachannels_.insert(DataChannelObserverPair(channel->label(), data_channel_observer));
+  remote_datachannels_.insert(DataChannelObserverPair(channel->label(), data_channel_observer));
 }
 
 
@@ -218,7 +220,7 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
 
 void Conductor::OnSocketConnected() {
 
-  std::string serial = std::to_string(send_datachannel_serial_++);
+  std::string serial = std::to_string(local_datachannel_serial_++);
   AddDataChannels(kDataPrefixLabel+std::string(serial));
 
 }
@@ -401,26 +403,45 @@ void Conductor::ConnectToPeer(int peer_id) {
 
 void Conductor::AddDataChannels(std::string& channel_name) {
 
-  if (send_datachannels_.find(channel_name) != send_datachannels_.end())
-    return;  // Already added.
-
-  rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
-    peer_connection_->CreateDataChannel(channel_name, NULL);
-
-  if (data_channel.get() == NULL) {
-    LOG(LS_ERROR) << "CreateDataChannel to PeerConnection failed";
-    return;
-  }
-
-  rtc::scoped_refptr<HotineDataChannelObserver> data_channel_observer(
-    new rtc::RefCountedObject<HotineDataChannelObserver>(data_channel));
-
-
   typedef std::pair<std::string,
-    rtc::scoped_refptr<HotineDataChannelObserver> >
-    DataChannelObserverPair;
+                    rtc::scoped_refptr<HotineDataChannelObserver> >
+                    DataChannelObserverPair;
 
-  send_datachannels_.insert(DataChannelObserverPair(data_channel->label(), data_channel_observer));
+  if (channel_name == kMainDataLabel) {
+    rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
+      peer_connection_->CreateDataChannel(channel_name, NULL);
+
+    if (data_channel.get() == NULL) {
+      LOG(LS_ERROR) << "CreateDataChannel(" + channel_name +") to PeerConnection failed";
+      return;
+    }
+
+    rtc::scoped_refptr<HotineDataChannelObserver> data_channel_observer(
+      new rtc::RefCountedObject<HotineDataChannelObserver>(data_channel, true));
+
+    main_datachannel_ = data_channel_observer;
+    main_datachannel_->SignalOpenEvent.connect(this, &Conductor::OnMainDatachannelReady);
+
+
+  }
+  else {
+    if (local_datachannels_.find(channel_name) != local_datachannels_.end())
+      return;  // Already added.
+
+    rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
+      peer_connection_->CreateDataChannel(channel_name, NULL);
+
+    if (data_channel.get() == NULL) {
+      LOG(LS_ERROR) << "CreateDataChannel to PeerConnection failed";
+      return;
+    }
+
+    rtc::scoped_refptr<HotineDataChannelObserver> data_channel_observer(
+      new rtc::RefCountedObject<HotineDataChannelObserver>(data_channel, false));
+
+    local_datachannels_.insert(DataChannelObserverPair(data_channel->label(),
+                               data_channel_observer));
+  }
 }
 
 
@@ -441,8 +462,8 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
       LOG(INFO) << "PEER_CONNECTION_CLOSED";
       DeletePeerConnection();
 
-      ASSERT(send_datachannels_.empty());
-      ASSERT(recv_datachannels_.empty());
+      ASSERT(local_datachannels_.empty());
+      ASSERT(remote_datachannels_.empty());
 
       if (main_wnd_->IsWindow()) {
         if (client_->is_connected()) {
@@ -539,34 +560,27 @@ void Conductor::OnFailure(const std::string& error) {
     LOG(LERROR) << error;
 }
 
+
+void Conductor::OnMainDatachannelReady() {
+
+  //
+  // Start listen if client mode
+  //
+
+  LOG(INFO) << "Main data channel opened.";
+
+  if (socket_connection_ && socket_connection_->client_mode()) {
+    if (socket_connection_->StartClientMode()){
+      // TODO: exit, Not implelemted yet
+    }
+  }
+
+}
+
+
 void Conductor::SendMessage(const std::string& json_object) {
   std::string* msg = new std::string(json_object);
   main_wnd_->QueueUIThreadCallback(SEND_MESSAGE_TO_PEER, msg);
 }
 
 
-
-
-void HotineDataChannelObserver::OnStateChange() {
-  
-  state_ = channel_->state();
-
-  if (state_ == webrtc::DataChannelInterface::kOpen){
-    LOG(INFO) << __FUNCTION__ << " " << " data channel has been openned.";
-  }
-  else if (state_ == webrtc::DataChannelInterface::kClosed) {
-    LOG(INFO) << __FUNCTION__ << " " << " data channel has been closed.";
-  }
-  else if (state_ == webrtc::DataChannelInterface::kConnecting) {
-    LOG(INFO) << __FUNCTION__ << " " << " data channel is connecting.";
-  }
-  else if (state_ == webrtc::DataChannelInterface::kClosing) {
-    LOG(INFO) << __FUNCTION__ << " " << " data channel is closing.";
-  }
-}
-
-
-void HotineDataChannelObserver::OnMessage(const webrtc::DataBuffer& buffer) {
-  ++received_message_count_;
-  LOG(INFO) << __FUNCTION__ << " " << " received_message_count_ = " << received_message_count_;
-}

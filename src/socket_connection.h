@@ -28,15 +28,30 @@ protected:
 class SocketConnection : public sigslot::has_slots<>,
                          public rtc::MessageHandler {
 public:
+  enum State {
+    SC_NOT_STARTED,
+    SC_STARTED,
+    SC_ERROR
+  };
+
   typedef std::vector<rtc::scoped_ptr<rtc::SocketStream>> SocketStreams;
 
   SocketConnection(bool server_mode);
-
   ~SocketConnection();
 
   void RegisterObserver(SocketConnectionObserver* callback);
 
-  bool Start(); // Start listening or connection depends on server_mode_
+  bool SetServerMode();
+  bool SetClientMode(rtc::SocketAddress local_address,
+                     rtc::SocketAddress remote_address,
+                     std::string tunnel_key,
+                     cricket::ProtocolType protocol);
+      
+  bool StartServerMode();
+  bool StartClientMode();
+
+  bool server_mode() const {return server_mode_;}
+  bool client_mode() const {return !server_mode_;}
 
   // implements the MessageHandler interface
   void OnMessage(rtc::Message* msg) {}
@@ -51,7 +66,7 @@ protected:
   // Listening socket
   //
 
-  bool AddListening(cricket::ProtocolType proto, rtc::SocketAddress bind_address);
+  bool StartListening();
 
   // tcp only
   void OnNewConnection(rtc::AsyncSocket* socket);
@@ -82,6 +97,12 @@ protected:
   SocketStreams streams_;
 
   bool server_mode_;
+  rtc::SocketAddress local_address_;
+  rtc::SocketAddress remote_address_;
+  cricket::ProtocolType protocol_;
+  std::string tunnel_key_;
+  State state_;
+
   char buffer_[kBufferSize];
   size_t len_;
 };

@@ -34,6 +34,7 @@ class Conductor
     public webrtc::CreateSessionDescriptionObserver,
     public SocketConnectionObserver,
     public PeerConnectionClientObserver,
+    public sigslot::has_slots<>,
     public MainWndCallback {
  public:
   enum CallbackID {
@@ -116,6 +117,9 @@ class Conductor
   virtual void OnSuccess(webrtc::SessionDescriptionInterface* desc);
   virtual void OnFailure(const std::string& error);
 
+  // For HotlineDataChannelObserver
+  void OnMainDatachannelReady();
+
  protected:
   // Send a message to the remote peer.
   void SendMessage(const std::string& json_object);
@@ -129,49 +133,19 @@ class Conductor
   SocketConnection* socket_connection_;
   MainWindow* main_wnd_;
   std::deque<std::string*> pending_messages_;
-  std::map < std::string, rtc::scoped_refptr<HotineDataChannelObserver> >
-      send_datachannels_;
-  std::map < std::string, rtc::scoped_refptr<HotineDataChannelObserver> >
-      recv_datachannels_;
 
-  long send_datachannel_serial_;
-  long recv_datachannel_serial_;
+  rtc::scoped_refptr<HotineDataChannelObserver> main_datachannel_;
+  std::map < std::string, rtc::scoped_refptr<HotineDataChannelObserver> >
+      local_datachannels_;
+  std::map < std::string, rtc::scoped_refptr<HotineDataChannelObserver> >
+      remote_datachannels_;
+
+  long local_datachannel_serial_;
+  long remote_datachannel_serial_;
 
   std::string server_;
 };
 
-
-// HotlineDataChnnelObserver
-// Observe data channel statechange including open, close and message incoming from peer.
-// Create instance per data channel because OnStateChange() and OnMessage() has 
-// no input webrtc::DataChannelInterface pointer argument.
-//
-class HotineDataChannelObserver
-  : public webrtc::DataChannelObserver,
-    public rtc::RefCountInterface {
-public:
-
-  explicit HotineDataChannelObserver(webrtc::DataChannelInterface* channel)
-    : channel_(channel), received_message_count_(0) {
-    channel_->RegisterObserver(this);
-    state_ = channel_->state();
-  }
-
-  virtual ~HotineDataChannelObserver() {
-    channel_->UnregisterObserver();
-  }
-
-  virtual void OnStateChange();
-  virtual void OnMessage(const webrtc::DataBuffer& buffer);
-
-  bool IsOpen() const { return state_ == webrtc::DataChannelInterface::kOpen; }
-  size_t received_message_count() const { return received_message_count_; }
-
-protected:
-  rtc::scoped_refptr<webrtc::DataChannelInterface> channel_;
-  webrtc::DataChannelInterface::DataState state_;
-  size_t received_message_count_;
-};
 
 
 
