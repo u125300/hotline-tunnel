@@ -15,6 +15,9 @@
 #include "talk/media/base/videorenderer.h"
 #include "webrtc/base/win32.h"
 
+
+namespace hotline {
+
 class MainWndCallback {
  public:
   virtual void StartLogin(const std::string& server, int port) = 0;
@@ -188,5 +191,8 @@ class MainWnd : public MainWindow {
   bool auto_call_;
 };
 #endif  // WIN32
+
+} // namespace hotline
+
 
 #endif  // PEERCONNECTION_SAMPLES_CLIENT_MAIN_WND_H_

@@ -7,6 +7,9 @@
 #include "webrtc/base/common.h"
 #include "webrtc/base/logging.h"
 
+namespace hotline {
+
+
 ATOM MainWnd::wnd_class_ = 0;
 const wchar_t MainWnd::kClassName[] = L"WebRTC_MainWnd";
 
@@ -600,3 +603,5 @@ void MainWnd::VideoRenderer::RenderFrame(const cricket::VideoFrame* frame) {
   }
   InvalidateRect(wnd_, NULL, TRUE);
 }
+
+} // namespace hotline

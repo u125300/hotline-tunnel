@@ -10,11 +10,14 @@
 #include <string>
 
 #include "webrtc/base/scoped_ptr.h"
+#include "webrtc/base/socketaddress.h"
+#include "webrtc/p2p/base/portinterface.h"
 #include "talk/app/webrtc/mediastreaminterface.h"
 #include "talk/app/webrtc/peerconnectioninterface.h"
 #include "main_wnd.h"
+#include "data_channel.h"
 #include "peer_connection_client.h"
-#include "socket_connection.h"
+#include "socket_server.h"
 
 
 namespace webrtc {
@@ -26,15 +29,24 @@ class VideoRenderer;
 }  // namespace cricket
 
 
-class HotineDataChannelObserver;
+namespace hotline {
+class HotineDataChannel;
+
+
+struct UserArguments{
+  bool server_mode;
+  rtc::SocketAddress local_address;
+  rtc::SocketAddress remote_address;
+  cricket::ProtocolType protocol;
+  std::string tunnel_key;
+};
 
 
 class Conductor
   : public webrtc::PeerConnectionObserver,
     public webrtc::CreateSessionDescriptionObserver,
-    public SocketConnectionObserver,
+    public ControlDataChannelObserver,
     public PeerConnectionClientObserver,
-    public sigslot::has_slots<>,
     public MainWndCallback {
  public:
   enum CallbackID {
@@ -45,7 +57,9 @@ class Conductor
     STREAM_REMOVED,
   };
 
-  Conductor(PeerConnectionClient* client, SocketConnection *socket_connection, MainWindow* main_wnd);
+  Conductor(PeerConnectionClient* client,
+            UserArguments& arguments,
+            MainWindow* main_wnd);
 
   bool connection_active() const;
 
@@ -58,7 +72,7 @@ class Conductor
   bool CreatePeerConnection(bool dtls);
   void DeletePeerConnection();
   void EnsureStreamingUI();
-  void AddDataChannels(std::string& channel_name);
+  bool AddDataChannels(std::string& channel_name);
 
   //
   // PeerConnectionObserver implementation.
@@ -72,19 +86,17 @@ class Conductor
   virtual void OnIceChange() {}
   virtual void OnIceCandidate(const webrtc::IceCandidateInterface* candidate);
 
-  //
-  // SocketListeningObserver implementation.
-  //
 
-  virtual void OnSocketConnected();
-  virtual void OnSocketDisconnected() {};
-  virtual void OnMessageFromSocket() {};
-  virtual void OnMessageToSocket() {};
+  //
+  // ControlDataChannelObserver implementation.
+  //
+  virtual void OnControlDataChannelOpen(bool is_local);
+  virtual void OnControlDataChannelClosed(bool is_local);
+
 
   //
   // PeerConnectionClientObserver implementation.
   //
-
   virtual void OnSignedIn();
 
   virtual void OnDisconnected();
@@ -117,9 +129,6 @@ class Conductor
   virtual void OnSuccess(webrtc::SessionDescriptionInterface* desc);
   virtual void OnFailure(const std::string& error);
 
-  // For HotlineDataChannelObserver
-  void OnMainDatachannelReady();
-
  protected:
   // Send a message to the remote peer.
   void SendMessage(const std::string& json_object);
@@ -130,23 +139,29 @@ class Conductor
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
       peer_connection_factory_;
   PeerConnectionClient* client_;
-  SocketConnection* socket_connection_;
   MainWindow* main_wnd_;
   std::deque<std::string*> pending_messages_;
 
-  rtc::scoped_refptr<HotineDataChannelObserver> main_datachannel_;
-  std::map < std::string, rtc::scoped_refptr<HotineDataChannelObserver> >
+  rtc::scoped_refptr<HotlineControlDataChannel> local_control_datachannel_;
+  rtc::scoped_refptr<HotlineControlDataChannel> remote_control_datachannel_;
+  std::map < std::string, rtc::scoped_refptr<HotineDataChannel> >
       local_datachannels_;
-  std::map < std::string, rtc::scoped_refptr<HotineDataChannelObserver> >
+  std::map < std::string, rtc::scoped_refptr<HotineDataChannel> >
       remote_datachannels_;
 
   long local_datachannel_serial_;
-  long remote_datachannel_serial_;
+
+  hotline::SocketListenServer socket_listen_server_;
+  bool server_mode_;
+  rtc::SocketAddress local_address_;
+  rtc::SocketAddress remote_address_;
+  std::string tunnel_key_;
+  cricket::ProtocolType protocol_;
 
   std::string server_;
 };
 
-
+} // namespace hotline
 
 
 

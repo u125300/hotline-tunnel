@@ -6,12 +6,12 @@
 #include "conductor.h"
 #include "flagdefs.h"
 #include "main_wnd.h"
-#include "socket_connection.h"
 #include "peer_connection_client.h"
 #include "webrtc/base/ssladapter.h"
 #include "webrtc/base/win32socketinit.h"
 #include "webrtc/base/win32socketserver.h"
 #include "webrtc/base/logging.h"
+
 
 
 void Usage();
@@ -36,17 +36,13 @@ int PASCAL wWinMain(HINSTANCE instance, HINSTANCE prev_instance,
   // Arguments 
   //
 
-  bool server_mode;
-  rtc::SocketAddress local_address;
-  rtc::SocketAddress remote_address;
-  std::string tunnel_key;
-  cricket::ProtocolType protocol;
+  hotline::UserArguments arguments;
   
-  server_mode = FLAG_server;
-  protocol = FLAG_udp ? cricket::PROTO_UDP : cricket::PROTO_TCP;
-  tunnel_key = FLAG_k;
+  arguments.server_mode = FLAG_server;
+  arguments.protocol = FLAG_udp ? cricket::PROTO_UDP : cricket::PROTO_TCP;
+  arguments.tunnel_key = FLAG_k;
 
-  if (server_mode) {
+  if (arguments.server_mode) {
     if (argc != 1) Usage();
   }
   else{
@@ -56,13 +52,13 @@ int PASCAL wWinMain(HINSTANCE instance, HINSTANCE prev_instance,
     std::string remote_port = argv[2];
 
     if (local_port.find(":") == std::string::npos) local_port = "0.0.0.0:"+local_port;
-    if (!local_address.FromString(local_port)) {
+    if (!arguments.local_address.FromString(local_port)) {
       LOG(LS_ERROR) << argv[1] + std::string(" is not a valid port or address");
       return -1;
     }
 
     if (remote_port.find(":") == std::string::npos) remote_port = "0.0.0.0:" + remote_port;
-    if (!remote_address.FromString(remote_port)) {
+    if (!arguments.remote_address.FromString(remote_port)) {
       LOG(LS_ERROR) << argv[1] + std::string(" is not a valid port or address");
       return -1;
     }
@@ -77,25 +73,16 @@ int PASCAL wWinMain(HINSTANCE instance, HINSTANCE prev_instance,
   rtc::Win32Thread w32_thread;
   rtc::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
 
-  MainWnd wnd("localhost", FLAG_port, FLAG_autoconnect, FLAG_autocall);
+  hotline::MainWnd wnd("localhost", FLAG_port, FLAG_autoconnect, FLAG_autocall);
   if (!wnd.Create()) {
     ASSERT(false);
     return -1;
   }
 
   rtc::InitializeSSL();
-  PeerConnectionClient client;
-  SocketConnection socket_connection(server_mode);
-  
-  if (server_mode) {
-    if (!socket_connection.SetServerMode()) return -1;
-  }
-  else {
-    if (!socket_connection.SetClientMode(local_address, remote_address, tunnel_key, protocol)) return -1;
-  }
-
-  rtc::scoped_refptr<Conductor> conductor(
-    new rtc::RefCountedObject<Conductor>(&client, &socket_connection, &wnd));
+  hotline::PeerConnectionClient client;
+  rtc::scoped_refptr<hotline::Conductor> conductor(
+    new rtc::RefCountedObject<hotline::Conductor>(&client, arguments, &wnd));
 
   //
   // Main loop.

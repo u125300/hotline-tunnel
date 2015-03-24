@@ -12,7 +12,7 @@
 
 using rtc::sprintfn;
 
-namespace {
+namespace hotline{
 
 // This is our magical hangup signal.
 const char kByeMessage[] = "BYE";
@@ -33,7 +33,6 @@ rtc::AsyncSocket* CreateClientSocket(int family) {
 #endif
 }
 
-}
 
 PeerConnectionClient::PeerConnectionClient()
   : callback_(NULL),
@@ -502,3 +501,5 @@ void PeerConnectionClient::OnMessage(rtc::Message* msg) {
   // ignore msg; there is currently only one supported message ("retry")
   DoConnect();
 }
+
+}  // namespace hotline

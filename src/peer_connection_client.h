@@ -11,6 +11,9 @@
 #include "webrtc/base/signalthread.h"
 #include "webrtc/base/sigslot.h"
 
+namespace hotline {
+
+
 typedef std::map<int, std::string> Peers;
 
 struct PeerConnectionClientObserver {
@@ -109,5 +112,8 @@ class PeerConnectionClient : public sigslot::has_slots<>,
   State state_;
   int my_id_;
 };
+
+} // namespace hotline
+
 
 #endif  // PEERCONNECTION_SAMPLES_CLIENT_PEER_CONNECTION_CLIENT_H_

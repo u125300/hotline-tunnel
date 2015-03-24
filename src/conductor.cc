@@ -13,6 +13,7 @@
 #include "defaults.h"
 #include "data_channel.h"
 
+namespace hotline {
 
 // Names used for a IceCandidate JSON object.
 const char kCandidateSdpMidName[] = "sdpMid";
@@ -45,17 +46,21 @@ class DummySetSessionDescriptionObserver
   ~DummySetSessionDescriptionObserver() {}
 };
 
-Conductor::Conductor(PeerConnectionClient* client, SocketConnection *socket_connection, MainWindow* main_wnd)
+
+Conductor::Conductor(PeerConnectionClient* client,
+                     UserArguments& arguments,
+                      MainWindow* main_wnd)
   : peer_id_(-1),
     loopback_(false),
-    client_(client),
-    socket_connection_(socket_connection),
+    client_(client),    
+    server_mode_(arguments.server_mode),
+    local_address_(arguments.local_address),
+    remote_address_(arguments.remote_address),
+    protocol_(arguments.protocol),
+    tunnel_key_(arguments.tunnel_key),
     local_datachannel_serial_(1),
-    remote_datachannel_serial_(1),
-
     main_wnd_(main_wnd) {
   client_->RegisterObserver(this);
-  socket_connection_->RegisterObserver(this);
   main_wnd->RegisterObserver(this);
 }
 
@@ -91,7 +96,7 @@ bool Conductor::InitializePeerConnection() {
     DeletePeerConnection();
   }
   
-  AddDataChannels(std::string(kMainDataLabel));
+  AddDataChannels(std::string(kControlDataLabel));
   main_wnd_->SwitchToStreamingUI();
 
   return peer_connection_.get() != NULL;
@@ -178,14 +183,20 @@ void Conductor::OnRemoveStream(webrtc::MediaStreamInterface* stream) {
 void Conductor::OnDataChannel(webrtc::DataChannelInterface* channel) {
   LOG(INFO) << __FUNCTION__;
 
-  rtc::scoped_refptr<HotineDataChannelObserver> data_channel_observer(
-    new rtc::RefCountedObject<HotineDataChannelObserver>(channel, false));
+  if (channel->label() == kControlDataLabel) {
+    remote_control_datachannel_ = new rtc::RefCountedObject<HotlineControlDataChannel>(channel, false);
+    remote_control_datachannel_->RegisterObserver(this);
+  }
+  else {
+    rtc::scoped_refptr<HotineDataChannel> data_channel_observer(
+      new rtc::RefCountedObject<HotineDataChannel>(channel));
 
-  typedef std::pair<std::string,
-    rtc::scoped_refptr<HotineDataChannelObserver> >
-    DataChannelObserverPair;
+    typedef std::pair<std::string,
+                      rtc::scoped_refptr<HotineDataChannel> >
+                      DataChannelObserverPair;
 
-  remote_datachannels_.insert(DataChannelObserverPair(channel->label(), data_channel_observer));
+    remote_datachannels_.insert(DataChannelObserverPair(channel->label(), data_channel_observer));
+  }
 }
 
 
@@ -214,17 +225,31 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
   SendMessage(writer.write(jmessage));
 }
 
-//
-// SocketClientObserver implementation.
-//
 
-void Conductor::OnSocketConnected() {
+void Conductor::OnControlDataChannelOpen(bool is_local){
+  LOG(INFO) << "Main data channel opened.";
+  if (server_mode_) {
 
-  std::string serial = std::to_string(local_datachannel_serial_++);
-  AddDataChannels(kDataPrefixLabel+std::string(serial));
-
+  }
+  else {
+    if (is_local) {
+      socket_listen_server_.Listen(local_address_, protocol_);
+    }
+  }
 }
 
+
+void Conductor::OnControlDataChannelClosed(bool is_local){
+  LOG(INFO) << "Main data channel cloed.";
+  if (server_mode_) {
+
+  }
+  else {
+    if (is_local) {
+      socket_listen_server_.StopListening();
+    }
+  }
+}
 
 
 
@@ -401,46 +426,49 @@ void Conductor::ConnectToPeer(int peer_id) {
 // Add data channels to send
 //
 
-void Conductor::AddDataChannels(std::string& channel_name) {
+bool Conductor::AddDataChannels(std::string& channel_name) {
 
   typedef std::pair<std::string,
-                    rtc::scoped_refptr<HotineDataChannelObserver> >
+    rtc::scoped_refptr<HotineDataChannel> >
                     DataChannelObserverPair;
 
-  if (channel_name == kMainDataLabel) {
+
+  if (channel_name == kControlDataLabel) {
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
       peer_connection_->CreateDataChannel(channel_name, NULL);
 
     if (data_channel.get() == NULL) {
       LOG(LS_ERROR) << "CreateDataChannel(" + channel_name +") to PeerConnection failed";
-      return;
+      return false;
     }
 
-    rtc::scoped_refptr<HotineDataChannelObserver> data_channel_observer(
-      new rtc::RefCountedObject<HotineDataChannelObserver>(data_channel, true));
-
-    main_datachannel_ = data_channel_observer;
-    main_datachannel_->SignalOpenEvent.connect(this, &Conductor::OnMainDatachannelReady);
-
+    local_control_datachannel_ = new rtc::RefCountedObject<HotlineControlDataChannel>(data_channel, true);
+    local_control_datachannel_->RegisterObserver(this);
+    return true;
 
   }
   else {
-    if (local_datachannels_.find(channel_name) != local_datachannels_.end())
-      return;  // Already added.
+    rtc::scoped_refptr<HotineDataChannel> data_channel_observer;
+    if (local_datachannels_.find(channel_name) != local_datachannels_.end()) {
+      return true;  // Already added.
+    }
 
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
       peer_connection_->CreateDataChannel(channel_name, NULL);
 
     if (data_channel.get() == NULL) {
       LOG(LS_ERROR) << "CreateDataChannel to PeerConnection failed";
-      return;
+      return false;
     }
 
-    rtc::scoped_refptr<HotineDataChannelObserver> data_channel_observer(
-      new rtc::RefCountedObject<HotineDataChannelObserver>(data_channel, false));
+    data_channel_observer = 
+                  new rtc::RefCountedObject<HotineDataChannel>(data_channel);
+
+    ASSERT(data_channel_observer.get()!=NULL);
 
     local_datachannels_.insert(DataChannelObserverPair(data_channel->label(),
                                data_channel_observer));
+    return true;
   }
 }
 
@@ -561,26 +589,9 @@ void Conductor::OnFailure(const std::string& error) {
 }
 
 
-void Conductor::OnMainDatachannelReady() {
-
-  //
-  // Start listen if client mode
-  //
-
-  LOG(INFO) << "Main data channel opened.";
-
-  if (socket_connection_ && socket_connection_->client_mode()) {
-    if (socket_connection_->StartClientMode()){
-      // TODO: exit, Not implelemted yet
-    }
-  }
-
-}
-
-
 void Conductor::SendMessage(const std::string& json_object) {
   std::string* msg = new std::string(json_object);
   main_wnd_->QueueUIThreadCallback(SEND_MESSAGE_TO_PEER, msg);
 }
 
-
+} // namespace hotline
