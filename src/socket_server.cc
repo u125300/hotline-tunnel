@@ -12,26 +12,13 @@
 
 namespace hotline {
 
-///////////////////////////////////////////////////////////////////////////////
-// SocketServerConnectionObserver
-///////////////////////////////////////////////////////////////////////////////
-
-SocketServerConnectionObserver::SocketServerConnectionObserver(SocketServerConnectionInterface* connection)
-    : connection_(connection) {
-  connection_->RegisterObserver(this);
-}
-
-SocketServerConnectionObserver::~SocketServerConnectionObserver() {
-  connection_->UnregisterObserver();
-}
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // SocketServerConnection
 ///////////////////////////////////////////////////////////////////////////////
 
 SocketServerConnection::SocketServerConnection(SocketServer* server)
-  : server_(server), stream_(NULL), observer_(NULL) {
+  : server_(server), stream_(NULL), closing_(false) {
 }
 
 
@@ -39,14 +26,18 @@ SocketServerConnection::~SocketServerConnection() {
   
 }
 
-void SocketServerConnection::RegisterObserver(SocketServerConnectionObserver* observer) {
-  observer_ = observer;
+bool SocketServerConnection::AttachChannel(rtc::scoped_refptr<HotlineDataChannel> channel) {
+  if (channel_) return false;
+
+  channel_ = channel;
+  return true;
 }
 
-void SocketServerConnection::UnregisterObserver() {
-  observer_ = NULL;
+rtc::scoped_refptr<HotlineDataChannel> SocketServerConnection::DetachChannel() {
+  rtc::scoped_refptr<HotlineDataChannel> channel = channel_;
+  channel_ = NULL;
+  return channel;
 }
-
 
 void SocketServerConnection::BeginProcess(rtc::StreamInterface* stream) {
   stream_ = stream;
@@ -60,6 +51,21 @@ rtc::StreamInterface* SocketServerConnection::EndProcess(){
   if (stream) stream->SignalEvent.disconnect(this);
   return stream;
 }
+
+void SocketServerConnection::Close() {
+  HandleStreamClose();
+}
+
+void SocketServerConnection::HandleStreamClose(){
+
+  if (closing_) return;
+  closing_ = true;
+
+  if (server_) {
+    server_->Remove(this);
+  }
+}
+
 
 void SocketServerConnection::OnStreamEvent(rtc::StreamInterface* stream,
                                            int events, int error) {
@@ -77,6 +83,7 @@ void SocketServerConnection::OnStreamEvent(rtc::StreamInterface* stream,
 
   if (events & rtc::SE_CLOSE) {
     LOG(INFO) << __FUNCTION__ << " " << " rtc::SE_CLOSE.";
+    HandleStreamClose();
   }
 }
 
@@ -86,7 +93,7 @@ void SocketServerConnection::OnStreamEvent(rtc::StreamInterface* stream,
 // SocketServer
 ///////////////////////////////////////////////////////////////////////////////
 
-SocketServer::SocketServer() {
+SocketServer::SocketServer() : callback_(NULL) {
 }
 
 SocketServer::~SocketServer() {
@@ -99,18 +106,34 @@ SocketServer::~SocketServer() {
   }
 }
 
+  
+void SocketServer::RegisterObserver(SocketServerObserver* callback) {
+  callback_ = callback;
+}
+
+void SocketServer::UnregisterObserver() {
+  callback_ = NULL;
+}
 
 bool SocketServer::HandleConnection(rtc::StreamInterface* stream) {
+
   SocketServerConnection* connection = new SocketServerConnection(this);
   if (connection==NULL) return false;
-
   connections_.push_back(connection);
+
+  // Notify to conductor
+  callback_->OnSocketOpen(connection);
+  
+  // Begin process
   connection->BeginProcess(stream);
   return true;
 }
 
 
 void SocketServer::Remove(SocketServerConnection* connection) {
+  // Notify to conductor
+  callback_->OnSocketClosed(connection);
+
   connections_.remove(connection);
   SignalConnectionClosed(this, connection, connection->EndProcess());
   delete connection;
@@ -239,7 +262,6 @@ void SocketListenServer::OnConnectionClosed(SocketServer* server,
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-
 
 } // namespace hotline
 

@@ -30,8 +30,6 @@ class VideoRenderer;
 
 
 namespace hotline {
-class HotineDataChannel;
-
 
 struct UserArguments{
   bool server_mode;
@@ -45,7 +43,8 @@ struct UserArguments{
 class Conductor
   : public webrtc::PeerConnectionObserver,
     public webrtc::CreateSessionDescriptionObserver,
-    public ControlDataChannelObserver,
+    public HotlineDataChannelObserver,
+    public SocketServerObserver,
     public PeerConnectionClientObserver,
     public MainWndCallback {
  public:
@@ -88,11 +87,18 @@ class Conductor
 
 
   //
-  // ControlDataChannelObserver implementation.
+  // HotlineDataChannelObserver implementation.
   //
   virtual void OnControlDataChannelOpen(bool is_local);
   virtual void OnControlDataChannelClosed(bool is_local);
+  virtual void OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> channel);
+  virtual void OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel);
 
+  //
+  // SocketServerObserver implementation.
+  //
+  virtual void OnSocketOpen(SocketServerConnection* socket);
+  virtual void OnSocketClosed(SocketServerConnection* socket);
 
   //
   // PeerConnectionClientObserver implementation.
@@ -144,9 +150,9 @@ class Conductor
 
   rtc::scoped_refptr<HotlineControlDataChannel> local_control_datachannel_;
   rtc::scoped_refptr<HotlineControlDataChannel> remote_control_datachannel_;
-  std::map < std::string, rtc::scoped_refptr<HotineDataChannel> >
+  std::map < std::string, rtc::scoped_refptr<HotlineDataChannel> >
       local_datachannels_;
-  std::map < std::string, rtc::scoped_refptr<HotineDataChannel> >
+  std::map < std::string, rtc::scoped_refptr<HotlineDataChannel> >
       remote_datachannels_;
 
   long local_datachannel_serial_;

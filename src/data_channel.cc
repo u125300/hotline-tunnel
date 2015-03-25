@@ -12,7 +12,11 @@
 
 namespace hotline {
 
-void HotineDataChannel::OnStateChange() {
+void HotlineDataChannel::RegisterObserver(HotlineDataChannelObserver* callback) {
+  callback_ = callback;
+}
+
+void HotlineDataChannel::OnStateChange() {
   state_ = channel_->state();
 
   if (state_ == webrtc::DataChannelInterface::kOpen){
@@ -20,6 +24,7 @@ void HotineDataChannel::OnStateChange() {
   }
   else if (state_ == webrtc::DataChannelInterface::kClosed) {
     LOG(INFO) << __FUNCTION__ << " " << " data channel has been closed.";
+    HandleChannelClosed();
   }
   else if (state_ == webrtc::DataChannelInterface::kConnecting) {
     LOG(INFO) << __FUNCTION__ << " " << " data channel is connecting.";
@@ -30,26 +35,44 @@ void HotineDataChannel::OnStateChange() {
 }
 
 
-void HotineDataChannel::OnMessage(const webrtc::DataBuffer& buffer) {
+bool HotlineDataChannel::AttachSocket(SocketServerConnection *socket) {
+  if (socket_!=NULL) return false;
+  socket_ = socket;
+  return true;
+}
+  
+SocketServerConnection* HotlineDataChannel::DetachSocket() {
+  SocketServerConnection* socket = socket_;
+  socket_ = NULL;
+  return socket;
+}
+
+void HotlineDataChannel::Close() {
+  channel_->Close();
+}
+
+
+void HotlineDataChannel::OnMessage(const webrtc::DataBuffer& buffer) {
   ++received_message_count_;
   LOG(INFO) << __FUNCTION__ << " " << " received_message_count_ = " << received_message_count_;
 }
 
+void HotlineDataChannel::HandleChannelClosed() {
 
-
-
-void HotlineControlDataChannel::RegisterObserver(ControlDataChannelObserver* callback) {
-  callback_ = callback;
+  if (callback_) {
+    callback_->OnSocketDataChannelClosed(this);
+  }
 }
 
+
 void HotlineControlDataChannel::OnStateChange() {
-  HotineDataChannel::OnStateChange();
+  HotlineDataChannel::OnStateChange();
 
   if (state_ == webrtc::DataChannelInterface::kOpen){
-    callback_->OnControlDataChannelOpen(is_local_);
+    if (callback_) callback_->OnControlDataChannelOpen(is_local_);
   }
   else if (state_ == webrtc::DataChannelInterface::kClosed){
-    callback_->OnControlDataChannelClosed(is_local_);
+    if (callback_) callback_->OnControlDataChannelClosed(is_local_);
   }
 }
 

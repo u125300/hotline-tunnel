@@ -10,6 +10,7 @@
 #include "webrtc/base/socketstream.h"
 #include "webrtc/p2p/base/portinterface.h"
 #include "webrtc/base/refcount.h"
+#include "data_channel.h"
 
 
 namespace rtc {
@@ -23,52 +24,42 @@ namespace hotline {
 class SocketServer;
 class SocketServerConnectionInterface;
 class SocketServerConnection;
+class HotlineDataChannel;
+
 
 //////////////////////////////////////////////////////////////////////
-
-class SocketServerConnectionObserver
-  : public rtc::RefCountInterface {
+  
+class SocketServerObserver{
 public:
-
-  SocketServerConnectionObserver(SocketServerConnectionInterface* connection);
-  virtual ~SocketServerConnectionObserver();
-
-protected:
-  SocketServerConnectionInterface* connection_;
-};
-
-//////////////////////////////////////////////////////////////////////
-
-class SocketServerConnectionInterface {
-
- public:
-  virtual void RegisterObserver(SocketServerConnectionObserver* observer) = 0;
-  virtual void UnregisterObserver() = 0;
+  virtual void OnSocketOpen(SocketServerConnection* socket) = 0;
+  virtual void OnSocketClosed(SocketServerConnection* socket) = 0;
 
 };
 
+
 //////////////////////////////////////////////////////////////////////
 
-class SocketServerConnection : public SocketServerConnectionInterface,
-                               public sigslot::has_slots<> {
+class SocketServerConnection : public sigslot::has_slots<> {
  public:
   SocketServerConnection(SocketServer* server);
   virtual ~SocketServerConnection();
 
-  void RegisterObserver(SocketServerConnectionObserver* observer);
-  void UnregisterObserver();
+  bool AttachChannel(rtc::scoped_refptr<HotlineDataChannel> channel);
+  rtc::scoped_refptr<HotlineDataChannel>  DetachChannel();
 
   void BeginProcess(rtc::StreamInterface* stream);
   rtc::StreamInterface* EndProcess();
+  void Close();
 
 
  protected:
   void OnStreamEvent(rtc::StreamInterface* stream, int events, int error);
+  void HandleStreamClose();
 
   SocketServer* server_;
-  SocketServerConnectionObserver* observer_;
+  rtc::scoped_refptr<HotlineDataChannel> channel_;
   rtc::StreamInterface* stream_;
-
+  bool closing_;
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -78,16 +69,20 @@ public:
   SocketServer();
   virtual ~SocketServer();
 
+  void RegisterObserver(SocketServerObserver* callback);
+  void UnregisterObserver();
+
   bool HandleConnection(rtc::StreamInterface* stream);
+  void Remove(SocketServerConnection* connection);
 
   // Due to sigslot issues, we can't destroy some streams at an arbitrary time.
   sigslot::signal3<SocketServer*, SocketServerConnection*, rtc::StreamInterface*> SignalConnectionClosed;
 
-private:
-  void Remove(SocketServerConnection* connection);
+protected:
 
   typedef std::list<SocketServerConnection*> ConnectionList;
   ConnectionList connections_;
+  SocketServerObserver* callback_;
 };
 
 //////////////////////////////////////////////////////////////////////

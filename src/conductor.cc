@@ -61,6 +61,7 @@ Conductor::Conductor(PeerConnectionClient* client,
     local_datachannel_serial_(1),
     main_wnd_(main_wnd) {
   client_->RegisterObserver(this);
+  socket_listen_server_.RegisterObserver(this);
   main_wnd->RegisterObserver(this);
 }
 
@@ -188,11 +189,11 @@ void Conductor::OnDataChannel(webrtc::DataChannelInterface* channel) {
     remote_control_datachannel_->RegisterObserver(this);
   }
   else {
-    rtc::scoped_refptr<HotineDataChannel> data_channel_observer(
-      new rtc::RefCountedObject<HotineDataChannel>(channel));
+    rtc::scoped_refptr<HotlineDataChannel> data_channel_observer(
+      new rtc::RefCountedObject<HotlineDataChannel>(channel));
 
     typedef std::pair<std::string,
-                      rtc::scoped_refptr<HotineDataChannel> >
+                      rtc::scoped_refptr<HotlineDataChannel> >
                       DataChannelObserverPair;
 
     remote_datachannels_.insert(DataChannelObserverPair(channel->label(), data_channel_observer));
@@ -226,6 +227,11 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
 }
 
 
+
+//
+// HotlineDataChannelObserver implementation.
+//
+
 void Conductor::OnControlDataChannelOpen(bool is_local){
   LOG(INFO) << "Main data channel opened.";
   if (server_mode_) {
@@ -251,7 +257,42 @@ void Conductor::OnControlDataChannelClosed(bool is_local){
   }
 }
 
+void Conductor::OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> channel) {
 
+}
+
+void Conductor::OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel) {
+  SocketServerConnection* socket = channel->DetachSocket();
+  local_datachannels_.erase(channel->label());
+
+  if (socket) {
+    socket->Close();
+  }
+}
+
+
+//
+// SocketServerObserver implementation.
+//
+
+void Conductor::OnSocketOpen(SocketServerConnection* socket){
+  std::string channel_name = std::string(kDataPrefixLabel) + 
+                             std::to_string(local_datachannel_serial_++);
+  if (!AddDataChannels(channel_name)) return;
+  rtc::scoped_refptr<HotlineDataChannel> channel = local_datachannels_[channel_name];
+  if (channel==NULL) return;
+
+  channel->AttachSocket(socket);
+  socket->AttachChannel(channel);
+}
+  
+void Conductor::OnSocketClosed(SocketServerConnection* socket){
+  
+  rtc::scoped_refptr<HotlineDataChannel> channel = socket->DetachChannel();
+  if (channel) {
+    channel->Close();
+  }
+}
 
 //
 // PeerConnectionClientObserver implementation.
@@ -429,7 +470,7 @@ void Conductor::ConnectToPeer(int peer_id) {
 bool Conductor::AddDataChannels(std::string& channel_name) {
 
   typedef std::pair<std::string,
-    rtc::scoped_refptr<HotineDataChannel> >
+    rtc::scoped_refptr<HotlineDataChannel> >
                     DataChannelObserverPair;
 
 
@@ -448,7 +489,7 @@ bool Conductor::AddDataChannels(std::string& channel_name) {
 
   }
   else {
-    rtc::scoped_refptr<HotineDataChannel> data_channel_observer;
+    rtc::scoped_refptr<HotlineDataChannel> data_channel_observer;
     if (local_datachannels_.find(channel_name) != local_datachannels_.end()) {
       return true;  // Already added.
     }
@@ -462,12 +503,14 @@ bool Conductor::AddDataChannels(std::string& channel_name) {
     }
 
     data_channel_observer = 
-                  new rtc::RefCountedObject<HotineDataChannel>(data_channel);
+                  new rtc::RefCountedObject<HotlineDataChannel>(data_channel);
 
     ASSERT(data_channel_observer.get()!=NULL);
 
     local_datachannels_.insert(DataChannelObserverPair(data_channel->label(),
                                data_channel_observer));
+
+    data_channel_observer->RegisterObserver(this);
     return true;
   }
 }
