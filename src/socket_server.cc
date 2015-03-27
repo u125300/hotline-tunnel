@@ -14,132 +14,6 @@ namespace hotline {
 
 
 ///////////////////////////////////////////////////////////////////////////////
-// SocketServerConnection
-///////////////////////////////////////////////////////////////////////////////
-
-SocketServerConnection::SocketServerConnection(SocketServer* server)
-  : server_(server), stream_(NULL), closing_(false) {
-}
-
-
-SocketServerConnection::~SocketServerConnection() {
-  
-}
-
-bool SocketServerConnection::AttachChannel(rtc::scoped_refptr<HotlineDataChannel> channel) {
-  if (channel_) return false;
-
-  channel_ = channel;
-  return true;
-}
-
-rtc::scoped_refptr<HotlineDataChannel> SocketServerConnection::DetachChannel() {
-  rtc::scoped_refptr<HotlineDataChannel> channel = channel_;
-  channel_ = NULL;
-  return channel;
-}
-
-void SocketServerConnection::BeginProcess(rtc::StreamInterface* stream) {
-  stream_ = stream;
-  stream_->SignalEvent.connect(this, &SocketServerConnection::OnStreamEvent);
-}
-
-
-rtc::StreamInterface* SocketServerConnection::EndProcess(){
-  rtc::StreamInterface* stream = stream_;
-  stream_ = NULL;
-  if (stream) stream->SignalEvent.disconnect(this);
-  return stream;
-}
-
-void SocketServerConnection::Close() {
-  HandleStreamClose();
-}
-
-void SocketServerConnection::HandleStreamClose(){
-
-  if (closing_) return;
-  closing_ = true;
-
-  if (server_) {
-    server_->Remove(this);
-  }
-}
-
-
-void SocketServerConnection::OnStreamEvent(rtc::StreamInterface* stream,
-                                           int events, int error) {
-  if (events & rtc::SE_OPEN) {
-    LOG(INFO) << __FUNCTION__ << " " << " rtc::SE_OPEN.";
-  }
-
-  if (events & rtc::SE_READ) {
-    LOG(INFO) << __FUNCTION__ << " " << " rtc::SE_READ.";
-  }
-
-  if (events & rtc::SE_WRITE) {
-    LOG(INFO) << __FUNCTION__ << " " << " rtc::SE_WRITE.";
-  }
-
-  if (events & rtc::SE_CLOSE) {
-    LOG(INFO) << __FUNCTION__ << " " << " rtc::SE_CLOSE.";
-    HandleStreamClose();
-  }
-}
-
-
-
-///////////////////////////////////////////////////////////////////////////////
-// SocketServer
-///////////////////////////////////////////////////////////////////////////////
-
-SocketServer::SocketServer() : callback_(NULL) {
-}
-
-SocketServer::~SocketServer() {
-  for (ConnectionList::iterator it = connections_.begin();
-       it != connections_.end();
-       ++it) {
-    rtc::StreamInterface* stream = (*it)->EndProcess();
-    delete stream;
-    delete *it;
-  }
-}
-
-  
-void SocketServer::RegisterObserver(SocketServerObserver* callback) {
-  callback_ = callback;
-}
-
-void SocketServer::UnregisterObserver() {
-  callback_ = NULL;
-}
-
-bool SocketServer::HandleConnection(rtc::StreamInterface* stream) {
-
-  SocketServerConnection* connection = new SocketServerConnection(this);
-  if (connection==NULL) return false;
-  connections_.push_back(connection);
-
-  // Notify to conductor
-  callback_->OnSocketOpen(connection);
-  
-  // Begin process
-  connection->BeginProcess(stream);
-  return true;
-}
-
-
-void SocketServer::Remove(SocketServerConnection* connection) {
-  // Notify to conductor
-  callback_->OnSocketClosed(connection);
-
-  connections_.remove(connection);
-  SignalConnectionClosed(this, connection, connection->EndProcess());
-  delete connection;
-}
-
-///////////////////////////////////////////////////////////////////////////////
 // SocketListenServer
 ///////////////////////////////////////////////////////////////////////////////
 
@@ -255,8 +129,8 @@ void SocketListenServer::OnReadEvent(rtc::AsyncSocket* socket) {
   }
 }
 
-void SocketListenServer::OnConnectionClosed(SocketServer* server,
-            SocketServerConnection* connection,
+void SocketListenServer::OnConnectionClosed(SocketBase* server,
+            SocketConnection* connection,
             rtc::StreamInterface* stream) {
   rtc::Thread::Current()->Dispose(stream);
 }

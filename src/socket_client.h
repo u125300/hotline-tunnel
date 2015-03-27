@@ -1,5 +1,5 @@
-#ifndef HOTLINE_TUNNEL_SOCKET_SERVER_H_
-#define HOTLINE_TUNNEL_SOCKET_SERVER_H_
+#ifndef HOTLINE_TUNNEL_SOCKET_CLIENT_H_
+#define HOTLINE_TUNNEL_SOCKET_CLIENT_H_
 #pragma once
 
 #include <list>
@@ -27,26 +27,27 @@ class HotlineDataChannel;
 
 //////////////////////////////////////////////////////////////////////
 
-class SocketListenServer : public SocketBase, public sigslot::has_slots<> {
+class SocketClient : public SocketBase, public sigslot::has_slots<> {
 public:
-  SocketListenServer();
-  virtual ~SocketListenServer();
+  SocketClient();
+  virtual ~SocketClient();
 
-  bool Listen(const rtc::SocketAddress& address,
+  bool Connect(const rtc::SocketAddress& address,
               const cricket::ProtocolType protocol);
-  bool GetAddress(rtc::SocketAddress* address) const;
-  void StopListening();
+
+  void Disconnect();
+  SocketConnection* GetConnection();
 
 private:
   void OnReadEvent(rtc::AsyncSocket* socket);
   void OnConnectionClosed(SocketBase* server, SocketConnection* connection,
     rtc::StreamInterface* stream);
 
-  rtc::scoped_ptr<rtc::AsyncSocket> listener_;
+  rtc::scoped_ptr<rtc::AsyncSocket> connector_;
 };
 
 //////////////////////////////////////////////////////////////////////
 
 } // namespace hotline
 
-#endif  // HOTLINE_TUNNEL_SOCKET_SERVER_H_
+#endif  // HOTLINE_TUNNEL_SOCKET_CLIENT_H_

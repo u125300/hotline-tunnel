@@ -6,15 +6,15 @@
 
 #include "webrtc/base/scoped_ptr.h"
 #include "webrtc/base/scoped_ref_ptr.h"
+#include "webrtc/base/json.h"
 #include "talk/app/webrtc/mediastreaminterface.h"
 #include "talk/app/webrtc/peerconnectioninterface.h"
 #include "peer_connection_client.h"
-#include "socket_server.h"
 #include "defaults.h"
 
 namespace hotline {
 
-class SocketServerConnection;
+class SocketConnection;
 class HotlineDataChannel;
 
 
@@ -43,8 +43,8 @@ class HotlineDataChannel
     public rtc::RefCountInterface {
 
 public:
-  explicit HotlineDataChannel(webrtc::DataChannelInterface* channel)
-    : channel_(channel), socket_(NULL), callback_(NULL), received_message_count_(0) {
+  explicit HotlineDataChannel(webrtc::DataChannelInterface* channel, bool is_local)
+    : channel_(channel), socket_(NULL), callback_(NULL), received_message_count_(0), is_local_(is_local) {
     channel_->RegisterObserver(this);
     state_ = channel_->state();
   }
@@ -55,12 +55,15 @@ public:
   }
 
   void RegisterObserver(HotlineDataChannelObserver* callback);
-  bool AttachSocket(SocketServerConnection* socket);
-  SocketServerConnection* DetachSocket();
+  bool AttachSocket(SocketConnection* socket);
+  SocketConnection* DetachSocket();
 
+  bool Send(char* buf, size_t len);
   void Close();
 
   std::string label() { return channel_->label(); }
+  bool local(){return is_local_;}
+
   bool IsOpen() const { return state_ == webrtc::DataChannelInterface::kOpen; }
   size_t received_message_count() const { return received_message_count_; }
 
@@ -68,32 +71,37 @@ public:
 protected:
   virtual void OnStateChange();
   virtual void OnMessage(const webrtc::DataBuffer& buffer);
-  virtual void HandleChannelClosed();
 
   rtc::scoped_refptr<webrtc::DataChannelInterface> channel_;
-  SocketServerConnection* socket_;
+  SocketConnection* socket_;
   webrtc::DataChannelInterface::DataState state_;
   size_t received_message_count_;
   HotlineDataChannelObserver* callback_;
+  bool is_local_;
 
 };
 
 //////////////////////////////////////////////////////////////////////
 
+
 class HotlineControlDataChannel
   : public HotlineDataChannel {
 public:
+  enum MSGID {
+    SetUserArgument
+  };
+
+  class ControlMessage;
   explicit HotlineControlDataChannel(webrtc::DataChannelInterface* channel, bool is_local) 
-              : HotlineDataChannel(channel), is_local_(is_local) {}
+              : HotlineDataChannel(channel, is_local) {}
   virtual ~HotlineControlDataChannel() {}
 
-  bool local(){return is_local_;}
+  bool SendMessage(MSGID id, std::string& data1, std::string& data2, std::string&data3);
 
 protected:
   virtual void OnStateChange();
   virtual void OnMessage(const webrtc::DataBuffer& buffer);
 
-  bool is_local_;
 };
 
 } // namespace hotline

@@ -4,20 +4,18 @@
 
 #include "htn_config.h"
 
-#include <deque>
 #include <map>
-#include <set>
 #include <string>
 
 #include "webrtc/base/scoped_ptr.h"
 #include "webrtc/base/socketaddress.h"
 #include "webrtc/p2p/base/portinterface.h"
-#include "talk/app/webrtc/mediastreaminterface.h"
 #include "talk/app/webrtc/peerconnectioninterface.h"
 #include "main_wnd.h"
 #include "data_channel.h"
 #include "peer_connection_client.h"
 #include "socket_server.h"
+#include "socket_client.h"
 
 
 namespace webrtc {
@@ -44,7 +42,7 @@ class Conductor
   : public webrtc::PeerConnectionObserver,
     public webrtc::CreateSessionDescriptionObserver,
     public HotlineDataChannelObserver,
-    public SocketServerObserver,
+    public SocketObserver,
     public PeerConnectionClientObserver,
     public MainWndCallback {
  public:
@@ -95,10 +93,10 @@ class Conductor
   virtual void OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel);
 
   //
-  // SocketServerObserver implementation.
+  // SocketObserver implementation.
   //
-  virtual void OnSocketOpen(SocketServerConnection* socket);
-  virtual void OnSocketClosed(SocketServerConnection* socket);
+  virtual void OnSocketOpen(SocketConnection* socket);
+  virtual void OnSocketClosed(SocketConnection* socket);
 
   //
   // PeerConnectionClientObserver implementation.
@@ -158,6 +156,7 @@ class Conductor
   long local_datachannel_serial_;
 
   hotline::SocketListenServer socket_listen_server_;
+  hotline::SocketClient socket_client_;
   bool server_mode_;
   rtc::SocketAddress local_address_;
   rtc::SocketAddress remote_address_;
