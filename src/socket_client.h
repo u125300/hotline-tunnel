@@ -32,18 +32,16 @@ public:
   SocketClient();
   virtual ~SocketClient();
 
-  bool Connect(const rtc::SocketAddress& address,
+  SocketConnection* Connect(const rtc::SocketAddress& address,
               const cricket::ProtocolType protocol);
 
   void Disconnect();
-  SocketConnection* GetConnection();
 
 private:
   void OnReadEvent(rtc::AsyncSocket* socket);
   void OnConnectionClosed(SocketBase* server, SocketConnection* connection,
     rtc::StreamInterface* stream);
 
-  rtc::scoped_ptr<rtc::AsyncSocket> connector_;
 };
 
 //////////////////////////////////////////////////////////////////////

@@ -76,17 +76,19 @@ public:
   void RegisterObserver(SocketObserver* callback);
   void UnregisterObserver();
 
-  bool HandleConnection(rtc::StreamInterface* stream);
-  void Remove(SocketConnection* connection);
 
   // Due to sigslot issues, we can't destroy some streams at an arbitrary time.
   sigslot::signal3<SocketBase*, SocketConnection*, rtc::StreamInterface*> SignalConnectionClosed;
 
 protected:
+  SocketConnection* HandleConnection(rtc::StreamInterface* stream);
+  void Remove(SocketConnection* connection);
 
   typedef std::list<SocketConnection*> ConnectionList;
   ConnectionList connections_;
   SocketObserver* callback_;
+
+  friend class SocketConnection;
 };
 
 //////////////////////////////////////////////////////////////////////

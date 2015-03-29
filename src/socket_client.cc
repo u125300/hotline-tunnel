@@ -23,8 +23,8 @@ SocketClient::SocketClient() {
 SocketClient::~SocketClient() {
 }
 
-bool SocketClient::Connect(const rtc::SocketAddress& address,
-  const cricket::ProtocolType protocol) {
+SocketConnection* SocketClient::Connect(const rtc::SocketAddress& address,
+                           const cricket::ProtocolType protocol) {
 
 #ifdef WIN32
   rtc::Win32Socket* sock = new rtc::Win32Socket();
@@ -33,9 +33,8 @@ bool SocketClient::Connect(const rtc::SocketAddress& address,
                     protocol==cricket::PROTO_UDP ? SOCK_DGRAM : SOCK_STREAM)){
     LOG(LS_ERROR) << "Local port already in use or no privilege to bind port.";
     delete sock;
-    return false;
+    return NULL;
   }
-  connector_.reset(sock);
 #elif defined(POSIX)
   rtc::Thread* thread = rtc::Thread::Current();
   ASSERT(thread != NULL);
@@ -45,35 +44,26 @@ bool SocketClient::Connect(const rtc::SocketAddress& address,
     LOG(LS_ERROR) << "Local port already in use or no privilege to bind port.";
     return false;
   }
-  connector_.reset(sock);
 #else
 #error Platform not supported.
 #endif
   
-  ASSERT(connector_->GetState() == rtc::Socket::CS_CLOSED);
-  int err = connector_->Connect(address);
+  ASSERT(sock->GetState() == rtc::Socket::CS_CLOSED);
+  int err = sock->Connect(address);
   if (err == SOCKET_ERROR) {
-    return false;
+    return NULL;
   }
 
-  rtc::StreamInterface *stream = new rtc::SocketStream(connector_.get());
-  if (stream == NULL) return false;
-  HandleConnection(stream);
+  rtc::StreamInterface *stream = new rtc::SocketStream(sock);
+  if (stream == NULL) return NULL;
 
-  return true;
+  SocketConnection* connection = HandleConnection(stream);
+  return connection;
 }
 
 
 void SocketClient::Disconnect() {
   
-}
-
-
-SocketConnection* SocketClient::GetConnection() {
-  ASSERT(connections_.size()<=1);
-
-  if (connections_.size()==0) return NULL;
-  return connections_.front();
 }
 
 

@@ -57,7 +57,7 @@ int PASCAL wWinMain(HINSTANCE instance, HINSTANCE prev_instance,
       return -1;
     }
 
-    if (remote_port.find(":") == std::string::npos) remote_port = "0.0.0.0:" + remote_port;
+    if (remote_port.find(":") == std::string::npos) remote_port = "127.0.0.1:" + remote_port;
     if (!arguments.remote_address.FromString(remote_port)) {
       LOG(LS_ERROR) << argv[1] + std::string(" is not a valid port or address");
       return -1;

@@ -60,16 +60,37 @@ class Conductor
 
   bool connection_active() const;
 
+  uint64 id() {return id_;}
+  std::string id_string() const;
+  static uint64 Conductor::id_from_string(std::string id_string);
+
+
   virtual void Close();
 
  protected:
+   class ClientInfo{
+   public:
+     ClientInfo(uint64 id, rtc::SocketAddress remote_address, cricket::ProtocolType protocol) :
+                 id_(id), remote_address_(remote_address), protocol_(protocol){}
+     uint64 id() const{return id_;}
+     std::string& id_string() const;
+     rtc::SocketAddress& remote_address() { return remote_address_;}
+     cricket::ProtocolType protocol() { return protocol_; }
+   private:
+     uint64 id_;
+     rtc::SocketAddress remote_address_;
+     cricket::ProtocolType protocol_;
+  };
+
   ~Conductor();
   bool InitializePeerConnection();
   bool ReinitializePeerConnectionForLoopback();
   bool CreatePeerConnection(bool dtls);
   void DeletePeerConnection();
   void EnsureStreamingUI();
-  bool AddDataChannels(std::string& channel_name);
+  bool AddDataChannels(std::string& channel_name, bool controlchannel);
+  ClientInfo* FindClientInfo(std::string& channel_name);
+  void RemoveClientInfo(std::string& channel_name);
 
   //
   // PeerConnectionObserver implementation.
@@ -87,10 +108,13 @@ class Conductor
   //
   // HotlineDataChannelObserver implementation.
   //
-  virtual void OnControlDataChannelOpen(bool is_local);
-  virtual void OnControlDataChannelClosed(bool is_local);
+  virtual void OnControlDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> channel, bool is_local);
+  virtual void OnControlDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel, bool is_local);
   virtual void OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> channel);
   virtual void OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel);
+  virtual void OnCreateClient(uint64 id, rtc::SocketAddress& remote_address, cricket::ProtocolType protocol);
+  virtual void OnClientCreated(uint64 id);
+
 
   //
   // SocketObserver implementation.
@@ -102,17 +126,11 @@ class Conductor
   // PeerConnectionClientObserver implementation.
   //
   virtual void OnSignedIn();
-
   virtual void OnDisconnected();
-
   virtual void OnPeerConnected(int id, const std::string& name);
-
   virtual void OnPeerDisconnected(int id);
-
   virtual void OnMessageFromPeer(int peer_id, const std::string& message);
-
   virtual void OnMessageSent(int err);
-
   virtual void OnServerConnectionFailure();
 
   //
@@ -120,20 +138,16 @@ class Conductor
   //
 
   virtual void StartLogin(const std::string& server, int port);
-
   virtual void DisconnectFromServer();
-
   virtual void ConnectToPeer(int peer_id);
-
   virtual void DisconnectFromCurrentPeer();
-
   virtual void UIThreadCallback(int msg_id, void* data);
 
   // CreateSessionDescriptionObserver implementation.
   virtual void OnSuccess(webrtc::SessionDescriptionInterface* desc);
   virtual void OnFailure(const std::string& error);
 
- protected:
+
   // Send a message to the remote peer.
   void SendMessage(const std::string& json_object);
 
@@ -149,21 +163,23 @@ class Conductor
   rtc::scoped_refptr<HotlineControlDataChannel> local_control_datachannel_;
   rtc::scoped_refptr<HotlineControlDataChannel> remote_control_datachannel_;
   std::map < std::string, rtc::scoped_refptr<HotlineDataChannel> >
-      local_datachannels_;
-  std::map < std::string, rtc::scoped_refptr<HotlineDataChannel> >
-      remote_datachannels_;
+      datachannels_;
 
   long local_datachannel_serial_;
 
-  hotline::SocketListenServer socket_listen_server_;
-  hotline::SocketClient socket_client_;
+  SocketListenServer socket_listen_server_;
+  SocketClient socket_client_;
   bool server_mode_;
   rtc::SocketAddress local_address_;
   rtc::SocketAddress remote_address_;
   std::string tunnel_key_;
   cricket::ProtocolType protocol_;
 
+  uint64 id_;
   std::string server_;
+
+  typedef std::map<uint64, rtc::scoped_ptr<ClientInfo>> ClientMap;
+  ClientMap client_conductors_;
 };
 
 } // namespace hotline

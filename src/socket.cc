@@ -90,7 +90,6 @@ void SocketConnection::Close() {
 }
 
 void SocketConnection::HandleStreamClose(){
-
   if (closing_) return;
   closing_ = true;
 
@@ -202,10 +201,10 @@ void SocketBase::UnregisterObserver() {
   callback_ = NULL;
 }
 
-bool SocketBase::HandleConnection(rtc::StreamInterface* stream) {
+SocketConnection* SocketBase::HandleConnection(rtc::StreamInterface* stream) {
 
   SocketConnection* connection = new SocketConnection(this);
-  if (connection==NULL) return false;
+  if (connection==NULL) return NULL;
   connections_.push_back(connection);
 
   // Notify to conductor
@@ -213,11 +212,12 @@ bool SocketBase::HandleConnection(rtc::StreamInterface* stream) {
   
   // Begin process
   connection->BeginProcess(stream);
-  return true;
+  return connection;
 }
 
 
 void SocketBase::Remove(SocketConnection* connection) {
+
   // Notify to conductor
   callback_->OnSocketClosed(connection);
 
