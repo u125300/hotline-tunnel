@@ -19,7 +19,7 @@ namespace hotline {
 ///////////////////////////////////////////////////////////////////////////////
 
 SocketConnection::SocketConnection(SocketBase* server)
-  : server_(server), stream_(NULL), closing_(false), recv_len_(0), send_len_(0) {
+  : server_(server), stream_(NULL), closing_(false), recv_len_(0), send_len_(0), is_ready_(false) {
 }
 
 
@@ -31,6 +31,7 @@ bool SocketConnection::AttachChannel(rtc::scoped_refptr<HotlineDataChannel> chan
   if (channel_) return false;
 
   channel_ = channel;
+
   return true;
 }
 
@@ -39,6 +40,14 @@ rtc::scoped_refptr<HotlineDataChannel> SocketConnection::DetachChannel() {
   channel_ = NULL;
   return channel;
 }
+
+void SocketConnection::SetReady(bool readevent){
+  is_ready_ = true;
+  if (readevent) {
+    OnStreamEvent(stream_, rtc::SE_READ, 0);
+  }
+}
+
 
 void SocketConnection::BeginProcess(rtc::StreamInterface* stream) {
   stream_ = stream;
@@ -122,6 +131,8 @@ void SocketConnection::OnStreamEvent(rtc::StreamInterface* stream,
 void SocketConnection::DoReceiveLoop() {
 
   int error;
+
+  if (!channel_->IsOpen() ||  !is_ready_) return;
 
   if (recv_len_==0) {
     rtc::StreamResult read_result = stream_->Read(recv_buffer_, sizeof(recv_buffer_), &recv_len_, &error);

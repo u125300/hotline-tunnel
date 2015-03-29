@@ -40,6 +40,7 @@ class SocketConnection : public sigslot::has_slots<> {
 
   bool AttachChannel(rtc::scoped_refptr<HotlineDataChannel> channel);
   rtc::scoped_refptr<HotlineDataChannel>  DetachChannel();
+  void SetReady(bool readevent);
 
   void BeginProcess(rtc::StreamInterface* stream);
   rtc::StreamInterface* EndProcess();
@@ -58,12 +59,14 @@ class SocketConnection : public sigslot::has_slots<> {
   rtc::scoped_refptr<HotlineDataChannel> channel_;
   rtc::StreamInterface* stream_;
   bool closing_;
+  bool is_ready_;
 
   char send_buffer_[kBufferSize];
   size_t send_len_;
 
   char recv_buffer_[kBufferSize];
   size_t recv_len_;
+
 };
 
 //////////////////////////////////////////////////////////////////////

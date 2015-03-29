@@ -30,6 +30,7 @@ struct HotlineDataChannelObserver{
 
   virtual void OnCreateClient(uint64 id, rtc::SocketAddress& remote_address, cricket::ProtocolType protocol) = 0;
   virtual void OnClientCreated(uint64 id) = 0;
+  virtual void OnServerSideReady(std::string& channel_name) = 0;
 
 protected:
   virtual ~HotlineDataChannelObserver() {}
@@ -61,6 +62,7 @@ public:
   void RegisterObserver(HotlineDataChannelObserver* callback);
   bool AttachSocket(SocketConnection* socket);
   SocketConnection* DetachSocket();
+  void SetSocketReady(bool readevent);
 
   bool Send(char* buf, size_t len);
   void Close();
@@ -93,7 +95,8 @@ class HotlineControlDataChannel
 public:
   enum MSGID {
     MsgCreateClient,
-    MsgClientCreated
+    MsgClientCreated,
+    MsgServerSideReady
   };
 
   class ControlMessage;
@@ -103,6 +106,7 @@ public:
 
   bool CreateClient(uint64 client_id, std::string& remote_address, cricket::ProtocolType protocol);
   bool ClientCreated(uint64 client_id);
+  bool ServerSideReady(std::string& channel_name);
 
 protected:
   virtual void OnStateChange();
@@ -111,6 +115,7 @@ protected:
 private:
   void OnCreateClient(Json::Value& json_data);
   void OnClientCreated(Json::Value& json_data);
+  void OnServerSideReady(Json::Value& json_data);
 
 };
 

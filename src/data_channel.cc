@@ -50,6 +50,13 @@ SocketConnection* HotlineDataChannel::DetachSocket() {
   return socket;
 }
 
+void HotlineDataChannel::SetSocketReady(bool readevent) {
+  if (socket_) {
+    socket_->SetReady(readevent);
+  }
+}
+
+
 bool HotlineDataChannel::Send(char* buf, size_t len) {
 
   if (channel_==NULL || channel_->state()!=webrtc::DataChannelInterface::kOpen) return false;
@@ -114,6 +121,13 @@ void HotlineControlDataChannel::OnMessage(const webrtc::DataBuffer& buffer) {
   case MsgClientCreated:
     OnClientCreated(data);
     break;
+
+  case MsgServerSideReady:
+    OnServerSideReady(data);
+    break;
+
+  default:
+    break;
   }
 }
 
@@ -129,7 +143,7 @@ bool HotlineControlDataChannel::CreateClient(uint64 client_id, std::string& remo
   data["protocol"] = protocol;
 
 
-  jmessage["id"] = MSGID::MsgCreateClient;
+  jmessage["id"] = MsgCreateClient;
   jmessage["data"] = data;
 
   webrtc::DataBuffer buffer(writer.write(jmessage));
@@ -165,7 +179,7 @@ bool HotlineControlDataChannel::ClientCreated(uint64 client_id) {
   data["id"] = std::to_string(client_id);
 
 
-  jmessage["id"] = MSGID::MsgClientCreated;
+  jmessage["id"] = MsgClientCreated;
   jmessage["data"] = data;
 
   webrtc::DataBuffer buffer(writer.write(jmessage));
@@ -184,4 +198,31 @@ void HotlineControlDataChannel::OnClientCreated(Json::Value& json_data) {
   callback_->OnClientCreated(id);  
   return;
 }
+
+bool HotlineControlDataChannel::ServerSideReady(std::string& channel_name) {
+  Json::StyledWriter writer;
+  Json::Value jmessage;
+  Json::Value data;
+
+  data["channel_name"] = channel_name;
+
+
+  jmessage["id"] = MsgServerSideReady;
+  jmessage["data"] = data;
+
+  webrtc::DataBuffer buffer(writer.write(jmessage));
+  return channel_->Send(buffer);
+
+}
+
+void HotlineControlDataChannel::OnServerSideReady(Json::Value& json_data) {
+  
+  std::string channel_name;
+  if (!GetStringFromJsonObject(json_data, "channel_name", &channel_name)) return;
+  callback_->OnServerSideReady(channel_name);  
+
+}
+
+
+
 } // namespace hotline

@@ -114,6 +114,7 @@ class Conductor
   virtual void OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel);
   virtual void OnCreateClient(uint64 id, rtc::SocketAddress& remote_address, cricket::ProtocolType protocol);
   virtual void OnClientCreated(uint64 id);
+  virtual void OnServerSideReady(std::string& channel_name);
 
 
   //

@@ -302,10 +302,15 @@ void Conductor::OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> c
 
     channel->AttachSocket(connection);
     connection->AttachChannel(channel);
+    connection->SetReady(false);
+    local_control_datachannel_->ServerSideReady(channel->label());
+
   }
   else {
 
   }
+
+
 }
 
 
@@ -313,6 +318,7 @@ void Conductor::OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel>
   SocketConnection* socket = channel->DetachSocket();
 
   datachannels_.erase(channel->label());
+  if (socket) socket->Close();
 }
 
 void Conductor::OnCreateClient(uint64 id, rtc::SocketAddress& remote_address, cricket::ProtocolType protocol){
@@ -331,6 +337,14 @@ void Conductor::OnClientCreated(uint64 id) {
   socket_listen_server_.Listen(local_address_, protocol_);
 }
 
+void Conductor::OnServerSideReady(std::string& channel_name) {
+  ASSERT(!server_mode_);
+
+  rtc::scoped_refptr<HotlineDataChannel> channel = datachannels_[channel_name];
+  if (channel) {
+    channel->SetSocketReady(true);
+  }
+}
 
 //
 // SocketServerObserver implementation.
@@ -357,7 +371,6 @@ void Conductor::OnSocketClosed(SocketConnection* socket){
   
   rtc::scoped_refptr<HotlineDataChannel> channel = socket->DetachChannel();
   if (channel) {
-    channel->DetachSocket();
  
     // TODO: fix channel closing bug.
     //channel->Close();
