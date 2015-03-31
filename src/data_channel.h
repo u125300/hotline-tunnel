@@ -62,7 +62,8 @@ public:
   void RegisterObserver(HotlineDataChannelObserver* callback);
   bool AttachSocket(SocketConnection* socket);
   SocketConnection* DetachSocket();
-  void SetSocketReady(bool readevent);
+  void SetSocketReady();
+  void SocketReadEvent();
 
   bool Send(char* buf, size_t len);
   void Close();

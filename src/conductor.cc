@@ -302,7 +302,7 @@ void Conductor::OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> c
 
     channel->AttachSocket(connection);
     connection->AttachChannel(channel);
-    connection->SetReady(false);
+    connection->SetReady();
     local_control_datachannel_->ServerSideReady(channel->label());
 
   }
@@ -342,7 +342,8 @@ void Conductor::OnServerSideReady(std::string& channel_name) {
 
   rtc::scoped_refptr<HotlineDataChannel> channel = datachannels_[channel_name];
   if (channel) {
-    channel->SetSocketReady(true);
+    channel->SetSocketReady();
+    channel->SocketReadEvent();
   }
 }
 

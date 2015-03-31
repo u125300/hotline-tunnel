@@ -33,14 +33,15 @@ public:
 
 class SocketConnection : public sigslot::has_slots<> {
  public:
-  enum { kBufferSize = 64 * 1024 };
+  enum { kBufferSize = 32 * 1024 };
 
   SocketConnection(SocketBase* server);
   virtual ~SocketConnection();
 
   bool AttachChannel(rtc::scoped_refptr<HotlineDataChannel> channel);
   rtc::scoped_refptr<HotlineDataChannel>  DetachChannel();
-  void SetReady(bool readevent);
+  void SetReady();
+  void ReadEvent();
 
   void BeginProcess(rtc::StreamInterface* stream);
   rtc::StreamInterface* EndProcess();
@@ -49,11 +50,34 @@ class SocketConnection : public sigslot::has_slots<> {
 
 
  protected:
+
+  class PacketQueue {
+  public:
+    PacketQueue();
+    ~PacketQueue();
+
+    size_t byte_count() const {
+      return byte_count_;
+    }
+    bool Empty() const;
+    webrtc::DataBuffer* Front();
+    void Pop();
+    void Push(webrtc::DataBuffer* packet);
+    void Clear();
+    void Swap(PacketQueue* other);
+  private:
+    std::deque<webrtc::DataBuffer*> packets_;
+    size_t byte_count_;
+  };
+
   void OnStreamEvent(rtc::StreamInterface* stream, int events, int error);
   void HandleStreamClose();
 
   void DoReceiveLoop();
   void flush_data();
+
+  bool QueueSendDataMessage(const webrtc::DataBuffer& buffer);
+  void SendQueuedDataMessages();
 
   SocketBase* server_;
   rtc::scoped_refptr<HotlineDataChannel> channel_;
@@ -61,12 +85,9 @@ class SocketConnection : public sigslot::has_slots<> {
   bool closing_;
   bool is_ready_;
 
-  char send_buffer_[kBufferSize];
-  size_t send_len_;
-
+  PacketQueue queued_send_data_;
   char recv_buffer_[kBufferSize];
   size_t recv_len_;
-
 };
 
 //////////////////////////////////////////////////////////////////////

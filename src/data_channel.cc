@@ -50,9 +50,15 @@ SocketConnection* HotlineDataChannel::DetachSocket() {
   return socket;
 }
 
-void HotlineDataChannel::SetSocketReady(bool readevent) {
+void HotlineDataChannel::SetSocketReady() {
   if (socket_) {
-    socket_->SetReady(readevent);
+    socket_->SetReady();
+  }
+}
+
+void HotlineDataChannel::SocketReadEvent() {
+  if (socket_) {
+    socket_->ReadEvent();
   }
 }
 
@@ -74,7 +80,10 @@ void HotlineDataChannel::Close() {
 
 
 void HotlineDataChannel::OnMessage(const webrtc::DataBuffer& buffer) {
-  if (socket_) socket_->Send(buffer);
+  if (socket_) {
+    bool send_result = socket_->Send(buffer);
+    ASSERT(send_result);
+  }
 }
 
 
