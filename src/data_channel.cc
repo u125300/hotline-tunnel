@@ -75,7 +75,11 @@ bool HotlineDataChannel::Send(char* buf, size_t len) {
 }
 
 void HotlineDataChannel::Close() {
-    channel_->Close();
+
+  DetachSocket();
+
+  // TODO: fix channel closing bug.
+  // channel_->Close();
 }
 
 

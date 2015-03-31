@@ -372,9 +372,7 @@ void Conductor::OnSocketClosed(SocketConnection* socket){
   
   rtc::scoped_refptr<HotlineDataChannel> channel = socket->DetachChannel();
   if (channel) {
- 
-    // TODO: fix channel closing bug.
-    //channel->Close();
+    channel->Close();
   }
 }
 
