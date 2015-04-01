@@ -372,7 +372,7 @@ void Conductor::OnSocketClosed(SocketConnection* socket){
   
   rtc::scoped_refptr<HotlineDataChannel> channel = socket->DetachChannel();
   if (channel) {
-    channel->Close();
+      channel->Close();
   }
 }
 
@@ -557,10 +557,13 @@ bool Conductor::AddDataChannels(std::string& channel_name, bool controlchannel) 
     rtc::scoped_refptr<HotlineDataChannel> >
                     DataChannelObserverPair;
 
+  webrtc::DataChannelInit config;
+  config.reliable = true;
+  config.ordered = true;
 
   if (controlchannel) {
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
-      peer_connection_->CreateDataChannel(channel_name, NULL);
+      peer_connection_->CreateDataChannel(channel_name, &config);
 
     if (data_channel.get() == NULL) {
       LOG(LS_ERROR) << "CreateDataChannel(" + channel_name +") to PeerConnection failed";
@@ -579,7 +582,7 @@ bool Conductor::AddDataChannels(std::string& channel_name, bool controlchannel) 
     }
 
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
-      peer_connection_->CreateDataChannel(channel_name, NULL);
+      peer_connection_->CreateDataChannel(channel_name, &config);
 
     if (data_channel.get() == NULL) {
       LOG(LS_ERROR) << "CreateDataChannel to PeerConnection failed";
