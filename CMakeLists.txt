@@ -28,6 +28,7 @@ set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "${PACKAGE} ${PACKAGE_VERSION}")
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${PROJECT_SOURCE_DIR}/cmake/")
 find_package(WebRTC)
+find_package(Libwebsockets)
 
 
 # ============================================================================
@@ -94,6 +95,7 @@ set(HEADERS
   "src/socket.h"
   "src/socket_server.h"
   "src/socket_client.h"
+  "src/websocket.h"
   "src/data_channel.h"
   "src/flagdefs.h"
   "src/peer_connection_client.h"
@@ -107,6 +109,7 @@ set(SOURCES
   "src/socket.cc"
   "src/socket_server.cc"
   "src/socket_client.cc"
+  "src/websocket.cc"
   "src/data_channel.cc"
   "src/peer_connection_client.cc"
   )
@@ -124,11 +127,13 @@ include_directories(
   "${WEBRTC_INCLUDE_DIR}/third_party/wtl/include"
   "${WEBRTC_INCLUDE_DIR}/third_party/jsoncpp/overrides/include"
   "${WEBRTC_INCLUDE_DIR}/third_party/jsoncpp/source/include"
+  "${LIBWEBSOCKETS_INCLUDE_DIR}"
   )
 
 add_executable(htunnel WIN32 ${HEADERS} ${SOURCES})
 target_link_libraries(htunnel
   ${WEBRTC_LIBRARIES}
+  ${LIBWEBSOCKETS_LIBRARIES}
   )
 
 install (TARGETS htunnel DESTINATION bin)
