@@ -9,27 +9,32 @@
 # Libwebsockets root and default library directory
 # ============================================================================
 
+set(DEPENDENCIES_ROOT_DIR
+  ${PROJECT_SOURCE_DIR}/../deps
+  CACHE PATH
+  "deps directory."
+  )
+
 set(LIBWEBSOCKETS_ROOT_DIR
-  ${PROJECT_SOURCE_DIR}/../deps/libwebsockets
+  ${DEPENDENCIES_ROOT_DIR}/libwebsockets
   CACHE PATH
   "Libwebsockets root directory."
   )
 
 set(LIBWEBSOCKETS_LIBRARY_DIR
-  ${LIBWEBSOCKETS_ROOT_DIR}/out/Release
+  ${DEPENDENCIES_ROOT_DIR}/out/Release
   CACHE PATH
   "Libwebsockets release library directory that contaions websockets_static.lib or libwebsockets.a"
   )
 
 set(LIBWEBSOCKETS_DEBUG_LIBRARY_DIR
-  ${LIBWEBSOCKETS_ROOT_DIR}/out/Debug
+  ${DEPENDENCIES_ROOT_DIR}/out/Debug
   CACHE PATH
   "Libwebsockets debug library directory that contaions websockets_static.lib or libwebsockets.a"
   )
 
-
 # ============================================================================
-# Find Libwebsockets header directory
+# Find Libwebsockets and dependent header directory
 # ============================================================================
 
 find_path(LIBWEBSOCKETS_INCLUDE_DIR
@@ -58,13 +63,27 @@ find_library(_LIBWEBSOCKETS_DEBUG_LIB_PATH
       ${LIBWEBSOCKETS_LIBRARY_DIR}
     )
 
+find_library(_ZLIB_RELEASE_LIB_PATH
+  NAMES zlibstatic zlib
+  PATHS 
+    ${LIBWEBSOCKETS_LIBRARY_DIR}
+)
+
+find_library(_ZLIB_DEBUG_LIB_PATH
+    NAMES zlibstaticd zlibd zlibstatic zlib
+    PATHS
+      ${LIBWEBSOCKETS_DEBUG_LIBRARY_DIR}
+      ${LIBWEBSOCKETS_LIBRARY_DIR}
+    )
+
 list(APPEND
   LIBWEBSOCKETS_LIBRARIES
   optimized ${_LIBWEBSOCKETS_RELEASE_LIB_PATH}
+  optimized ${_ZLIB_RELEASE_LIB_PATH}
   debug ${_LIBWEBSOCKETS_DEBUG_LIB_PATH}
+  debug ${_ZLIB_DEBUG_LIB_PATH}
   )
   
-
 
 # ============================================================================
 # Validation

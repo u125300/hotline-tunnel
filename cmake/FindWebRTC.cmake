@@ -10,20 +10,26 @@
 # WebRTC root and default library directory
 # ============================================================================
 
+set(DEPENDENCIES_ROOT_DIR
+  ${PROJECT_SOURCE_DIR}/../deps
+  CACHE PATH
+  "deps directory."
+  )
+
 set(WEBRTC_ROOT_DIR
-  ${PROJECT_SOURCE_DIR}/../deps/webrtc/src
+  ${DEPENDENCIES_ROOT_DIR}/webrtc/src
   CACHE PATH
   "WebRTC root directory."
   )
 
 set(WEBRTC_LIBRARY_DIR
-  ${WEBRTC_ROOT_DIR}/out/Release
+  ${DEPENDENCIES_ROOT_DIR}/out/Release
   CACHE PATH
   "WebRTC release library directory that contaions webrtcm.lib or libwebrtcm.a"
   )
 
 set(WEBRTC_DEBUG_LIBRARY_DIR
-  ${WEBRTC_ROOT_DIR}/out/Debug
+  ${DEPENDENCIES_ROOT_DIR}/out/Debug
   CACHE PATH
   "WebRTC debug library directory that contaions webrtcm.lib or libwebrtcm.a"
   )
@@ -179,7 +185,6 @@ if (MSVC)
     -D_CRT_RAND_S
     -D_ATL_NO_OPENGL
     -D_SECURE_ATL
-    -D_HAS_EXCEPTIONS=0
     -D_WINSOCK_DEPRECATED_NO_WARNINGS
     -D_CRT_SECURE_NO_DEPRECATE
     -D_SCL_SECURE_NO_DEPRECATE
