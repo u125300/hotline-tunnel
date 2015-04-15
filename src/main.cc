@@ -3,15 +3,16 @@
 #include <iostream>
 #include <string>
 
-#include "conductor.h"
-#include "flagdefs.h"
-#include "main_wnd.h"
-#include "peer_connection_client.h"
 #include "webrtc/base/ssladapter.h"
 #include "webrtc/base/win32socketinit.h"
 #include "webrtc/base/win32socketserver.h"
 #include "webrtc/base/logging.h"
 
+#include "conductor.h"
+#include "flagdefs.h"
+#include "main_wnd.h"
+#include "peer_connection_client.h"
+#include "peerconnection_client.h"
 
 
 void Usage();
@@ -81,8 +82,11 @@ int PASCAL wWinMain(HINSTANCE instance, HINSTANCE prev_instance,
 
   rtc::InitializeSSL();
   hotline::PeerConnectionClient client;
+  hotline::PeerConnectionClient2 client2;
+
   rtc::scoped_refptr<hotline::Conductor> conductor(
-    new rtc::RefCountedObject<hotline::Conductor>(&client, arguments, &wnd));
+    new rtc::RefCountedObject<hotline::Conductor>(&client, &client2, arguments, &wnd));
+
 
   //
   // Main loop.

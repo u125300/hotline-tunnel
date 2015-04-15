@@ -14,6 +14,7 @@
 #include "main_wnd.h"
 #include "data_channel.h"
 #include "peer_connection_client.h"
+#include "peerconnection_client.h"
 #include "socket_server.h"
 #include "socket_client.h"
 
@@ -44,6 +45,7 @@ class Conductor
     public HotlineDataChannelObserver,
     public SocketObserver,
     public PeerConnectionClientObserver,
+    public PeerConnectionClientObserver2,
     public MainWndCallback {
  public:
   enum CallbackID {
@@ -55,6 +57,7 @@ class Conductor
   };
 
   Conductor(PeerConnectionClient* client,
+            PeerConnectionClient2* client2,
             UserArguments& arguments,
             MainWindow* main_wnd);
 
@@ -104,6 +107,10 @@ class Conductor
   virtual void OnIceChange() {}
   virtual void OnIceCandidate(const webrtc::IceCandidateInterface* candidate);
 
+  //
+  // PeerConnectionObserver2 implementation.
+  //
+  
 
   //
   // HotlineDataChannelObserver implementation.
@@ -158,6 +165,7 @@ class Conductor
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
       peer_connection_factory_;
   PeerConnectionClient* client_;
+  PeerConnectionClient2* client2_;
   MainWindow* main_wnd_;
   std::deque<std::string*> pending_messages_;
 

@@ -48,11 +48,13 @@ class DummySetSessionDescriptionObserver
 
 
 Conductor::Conductor(PeerConnectionClient* client,
+                     PeerConnectionClient2* client2,
                      UserArguments& arguments,
                       MainWindow* main_wnd)
   : peer_id_(-1),
     loopback_(false),
-    client_(client),    
+    client_(client),
+    client2_(client2),
     server_mode_(arguments.server_mode),
     local_address_(arguments.local_address),
     remote_address_(arguments.remote_address),
@@ -64,6 +66,8 @@ Conductor::Conductor(PeerConnectionClient* client,
   id_ = rtc::CreateRandomId64();
 
   client_->RegisterObserver(this);
+  client2_->RegisterObserver(this);
+
   if (server_mode_){
     socket_client_.RegisterObserver(this);
   }
