@@ -108,11 +108,6 @@ class Conductor
   virtual void OnIceCandidate(const webrtc::IceCandidateInterface* candidate);
 
   //
-  // PeerConnectionObserver2 implementation.
-  //
-  
-
-  //
   // HotlineDataChannelObserver implementation.
   //
   virtual void OnControlDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> channel, bool is_local);
@@ -140,6 +135,13 @@ class Conductor
   virtual void OnMessageFromPeer(int peer_id, const std::string& message);
   virtual void OnMessageSent(int err);
   virtual void OnServerConnectionFailure();
+
+  //
+  // PeerConnectionClientObserver2 implementation.
+  //
+  virtual void OnSignedIn2();
+  virtual void OnDisconnected2();
+  virtual void OnServerConnectionFailure2();
 
   //
   // MainWndCallback implementation.

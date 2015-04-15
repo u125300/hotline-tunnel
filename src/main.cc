@@ -87,6 +87,20 @@ int PASCAL wWinMain(HINSTANCE instance, HINSTANCE prev_instance,
   rtc::scoped_refptr<hotline::Conductor> conductor(
     new rtc::RefCountedObject<hotline::Conductor>(&client, &client2, arguments, &wnd));
 
+  //
+  // Connect to server
+  //
+
+  std::string server_url = GetDefaultServerName();
+  if ((server_url.find("ws://") != 0 && server_url.find("wss://") != 0)) {
+    return -1;
+  }
+
+  if (server_url.back() != '/') server_url.push_back('/');
+  server_url.append(kDefaultServerPath);
+
+  client2.Connect(server_url);
+
 
   //
   // Main loop.

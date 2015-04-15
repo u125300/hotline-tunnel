@@ -15,6 +15,10 @@ namespace hotline {
 
 struct PeerConnectionClientObserver2 {
 
+  virtual void OnSignedIn2() = 0;  // Called when we're logged on.
+  virtual void OnDisconnected2() = 0;
+  virtual void OnServerConnectionFailure2() = 0;
+
  protected:
   virtual ~PeerConnectionClientObserver2() {}
 

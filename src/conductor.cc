@@ -512,9 +512,24 @@ void Conductor::OnMessageSent(int err) {
 }
 
 void Conductor::OnServerConnectionFailure() {
-    main_wnd_->MessageBox("Error", ("Failed to connect to " + server_).c_str(),
+  main_wnd_->MessageBox("Error", ("Failed to connect to " + server_).c_str(),
                           true);
 }
+
+
+
+void Conductor::OnSignedIn2() {
+
+}
+
+void Conductor::OnDisconnected2() {
+
+}
+
+void Conductor::OnServerConnectionFailure2() {
+
+}
+
 
 //
 // MainWndCallback implementation.

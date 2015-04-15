@@ -17,6 +17,7 @@ const char kVideoLabel[] = "video_label";
 const char kStreamLabel[] = "stream_label";
 const char kControlDataLabel[] = "control_label";
 const char kDataPrefixLabel[] = "sckdata_";
+const char kDefaultServerPath[] = "htunnel";
 const uint16 kDefaultServerPort = 8888;
 
 std::string GetEnvVarOrDefault(const char* env_var_name,
@@ -37,8 +38,9 @@ std::string GetPeerConnectionString() {
 }
 
 std::string GetDefaultServerName() {
-  return GetEnvVarOrDefault("WEBRTC_SERVER", "localhost");
+  return GetEnvVarOrDefault("HOTLINE_SERVER", "ws://localhost:9000");
 }
+
 
 std::string GetPeerName() {
   char computer_name[256];
