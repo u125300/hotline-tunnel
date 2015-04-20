@@ -13,15 +13,9 @@ extern const uint16 kDefaultServerPort;  // From defaults.[h|cc]
 
 DEFINE_bool(help, false, "Prints this message");
 DEFINE_bool(server, false, "server mode");
-DEFINE_string(k, "", "tunnel key");
+DEFINE_string(p, "", "password");
+DEFINE_string(r, "", "Room id");
 DEFINE_bool(udp, false, "UDP mode");
 
-DEFINE_bool(autoconnect, false, "Connect to the server without user "
-                                "intervention.");
-DEFINE_int(port, kDefaultServerPort,
-           "The port on which the server is listening.");
-DEFINE_bool(autocall, false, "Call the first available other client on "
-  "the server without user intervention.  Note: this flag should only be set "
-  "to true on one of the two clients.");
 
 #endif  // TALK_EXAMPLES_PEERCONNECTION_CLIENT_FLAGDEFS_H_

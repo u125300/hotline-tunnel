@@ -155,6 +155,9 @@ WebSocket::WebSocket()
     , _SSLConnection(0)
     , _wsProtocols(nullptr)
 {
+#ifndef _DEBUG
+  lws_set_log_level(0, NULL);
+#endif
 }
 
 WebSocket::~WebSocket()

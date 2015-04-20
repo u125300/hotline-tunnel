@@ -10,9 +10,9 @@
 
 namespace hotline {
 
-PeerConnectionClient::PeerConnectionClient(bool server_mode)
-  : server_mode_(server_mode)
-  , id_(0)
+
+PeerConnectionClient::PeerConnectionClient()
+  : callback_(NULL)
 {
 }
 
@@ -20,8 +20,21 @@ PeerConnectionClient::~PeerConnectionClient() {
  
 }
 
-void PeerConnectionClient::RegisterObserver(PeerConnectionClientObserver* callback) {
+void PeerConnectionClient::InitClientMode(std::string& password) {
+  server_mode_ = false;
+  password_ = password;
+}
 
+
+void PeerConnectionClient::InitServerMode(std::string& password) {
+  server_mode_ = true;
+  password_ = password;
+}
+
+
+void PeerConnectionClient::RegisterObserver(PeerConnectionClientObserver* callback) {
+  ASSERT(callback_ == NULL);
+  callback_ = callback;
 }
 
 
@@ -75,16 +88,16 @@ void PeerConnectionClient::onMessage(WebSocket* ws, const WebSocket::Data& data)
     return;
   }
 
-  std::string msgid;
+  MsgID msgid;
   Json::Value payload_data;
 
-  if(!GetStringFromJsonObject(jmessage, "msgid", &msgid)) return;
+  if(!GetIntFromJsonObject(jmessage, "msgid", (int*)&msgid)) return;
   if(!GetValueFromJsonObject(jmessage, "data", &payload_data)) return;
 
-  if (msgid == std::string("create")) {
+  if (msgid == CreateRoom) {
     created(payload_data);
   }
-  else if (msgid == std::string("join")) {
+  else if (msgid == JoinRoom) {
     joined(payload_data);
   }
 
@@ -93,7 +106,7 @@ void PeerConnectionClient::onMessage(WebSocket* ws, const WebSocket::Data& data)
 void PeerConnectionClient::onClose(WebSocket* ws) {
   
 }
-  
+
 
 void PeerConnectionClient::onError(WebSocket* ws, const WebSocket::ErrorCode& error) {
   
@@ -102,29 +115,25 @@ void PeerConnectionClient::onError(WebSocket* ws, const WebSocket::ErrorCode& er
 
 bool PeerConnectionClient::StartClientMode(int id) {
 
-  Send("join", std::to_string(id));
-
-  return false;
+  return Send(JoinRoom, std::to_string(id));
 }
 
 bool PeerConnectionClient::StartServerMode() {
 
-  //
-  // Make new room
-  //
+  Json::Value jdata;
+  jdata["password"] = password_;
 
-  Send("create", "");
+  return Send(CreateRoom, jdata);
 
-  return true;
 }
 
 
 void PeerConnectionClient::created(Json::Value& data) {
   bool successful;
-  int id;
+  std::string id;
 
   if(!GetBoolFromJsonObject(data, "successful", &successful)
-      || !GetIntFromJsonObject(data, "id", &id)) {
+      || !GetStringFromJsonObject(data, "id", &id)) {
     LOG(LS_WARNING) << "Invalid message format";
     return;
   }
@@ -134,7 +143,8 @@ void PeerConnectionClient::created(Json::Value& data) {
     return;
   }
 
-  id_ = id;
+  room_id_ = id;
+  callback_->OnSignedIn(id);
 }
 
 void PeerConnectionClient::joined(Json::Value& data) {
@@ -150,11 +160,11 @@ void PeerConnectionClient::joined(Json::Value& data) {
 }
 
 template<typename T>
-bool PeerConnectionClient::Send(const std::string msgid, T& data) {
+bool PeerConnectionClient::Send(const MsgID msgid, T& data) {
 
   int version = HOTLINE_API_VERSION;
 
-  Json::StyledWriter writer;
+  Json::FastWriter writer;
   Json::Value jmessage;
 
   jmessage["msgid"] = msgid;
@@ -163,7 +173,7 @@ bool PeerConnectionClient::Send(const std::string msgid, T& data) {
 
   if (ws_->getReadyState() != WebSocket::State::OPEN) {
     LOG(LS_ERROR) << "WebSocket not opened, Send("
-        + msgid + ", " + std::to_string(version) + ", " + data + ") failed.";
+        + std::to_string(msgid) + ", " + std::to_string(version) + ", " + writer.write(data) + ") failed.";
     return false;
   }
 

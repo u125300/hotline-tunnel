@@ -56,7 +56,7 @@ Conductor::Conductor(PeerConnectionClient* client,
     local_address_(arguments.local_address),
     remote_address_(arguments.remote_address),
     protocol_(arguments.protocol),
-    tunnel_key_(arguments.tunnel_key),
+    room_id_(arguments.room_id),
     local_datachannel_serial_(1) {
 
   id_ = rtc::CreateRandomId64();
@@ -235,7 +235,7 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
     return;
   }
 
-  Json::StyledWriter writer;
+  Json::FastWriter writer;
   Json::Value jmessage;
 
   jmessage[kCandidateSdpMidName] = candidate->sdp_mid();
@@ -512,7 +512,33 @@ void Conductor::OnServerConnectionFailure() {
 
 */
 
-void Conductor::OnSignedIn() {
+void Conductor::OnSignedIn(std::string& room_id) {
+
+  //
+  // Server mode
+  //
+
+  if (server_mode_) {
+    room_id_ = room_id;
+    printf("Your room id is %s\n", room_id.c_str());
+  }
+
+  //
+  // Client mode
+  //
+
+  else {
+    ASSERT(room_id==room_id_);
+  }
+
+
+}
+
+void Conductor::OnMessageFromPeer() {
+
+}
+
+void Conductor::OnMessageSent() {
 
 }
 
@@ -744,7 +770,7 @@ void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc) {
     return;
   }
 
-  Json::StyledWriter writer;
+  Json::FastWriter writer;
   Json::Value jmessage;
   jmessage[kSessionDescriptionTypeName] = desc->type();
   jmessage[kSessionDescriptionSdpName] = sdp;

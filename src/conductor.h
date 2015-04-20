@@ -33,7 +33,8 @@ struct UserArguments{
   rtc::SocketAddress local_address;
   rtc::SocketAddress remote_address;
   cricket::ProtocolType protocol;
-  std::string tunnel_key;
+  std::string room_id;
+  std::string password;
 };
 
 
@@ -123,7 +124,9 @@ class Conductor
   //
   // PeerConnectionClientObserver implementation.
   //
-  virtual void OnSignedIn();
+  virtual void OnSignedIn(std::string& room_id);
+  virtual void OnMessageFromPeer();
+  virtual void OnMessageSent();
   virtual void OnDisconnected();
   virtual void OnServerConnectionFailure();
 
@@ -155,7 +158,7 @@ class Conductor
   bool server_mode_;
   rtc::SocketAddress local_address_;
   rtc::SocketAddress remote_address_;
-  std::string tunnel_key_;
+  std::string room_id_;
   cricket::ProtocolType protocol_;
 
   uint64 id_;

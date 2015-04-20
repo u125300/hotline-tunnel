@@ -147,7 +147,7 @@ void HotlineControlDataChannel::OnMessage(const webrtc::DataBuffer& buffer) {
 
 
 bool HotlineControlDataChannel::CreateClient(uint64 client_id, std::string& remote_address, cricket::ProtocolType protocol) {
-  Json::StyledWriter writer;
+  Json::FastWriter writer;
   Json::Value jmessage;
   Json::Value data;
 
@@ -185,7 +185,7 @@ void HotlineControlDataChannel::OnCreateClient(Json::Value& json_data) {
 }
 
 bool HotlineControlDataChannel::ClientCreated(uint64 client_id) {
-  Json::StyledWriter writer;
+  Json::FastWriter writer;
   Json::Value jmessage;
   Json::Value data;
 
@@ -213,7 +213,7 @@ void HotlineControlDataChannel::OnClientCreated(Json::Value& json_data) {
 }
 
 bool HotlineControlDataChannel::ServerSideReady(std::string& channel_name) {
-  Json::StyledWriter writer;
+  Json::FastWriter writer;
   Json::Value jmessage;
   Json::Value data;
 

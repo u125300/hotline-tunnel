@@ -35,7 +35,8 @@ int main(int argc, char** argv) {
   
   arguments.server_mode = FLAG_server;
   arguments.protocol = FLAG_udp ? cricket::PROTO_UDP : cricket::PROTO_TCP;
-  arguments.tunnel_key = FLAG_k;
+  arguments.room_id = FLAG_r;
+  arguments.password = FLAG_p;
 
   if (arguments.server_mode) {
     if (argc != 1) Usage();
@@ -57,7 +58,6 @@ int main(int argc, char** argv) {
       LOG(LS_ERROR) << argv[1] + std::string(" is not a valid port or address");
       return -1;
     }
-
   }
 
   //
@@ -69,7 +69,14 @@ int main(int argc, char** argv) {
   rtc::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
 
   rtc::InitializeSSL();
-  hotline::PeerConnectionClient client(arguments.server_mode);
+  hotline::PeerConnectionClient client;
+
+  if (arguments.server_mode) {
+    client.InitServerMode(arguments.password);
+  }
+  else {
+    client.InitClientMode(arguments.password);
+  }
 
   rtc::scoped_refptr<hotline::Conductor> conductor(
     new rtc::RefCountedObject<hotline::Conductor>(&client, arguments));
@@ -97,10 +104,10 @@ int main(int argc, char** argv) {
 
 // Prints out a usage message then exits.
 void Usage() {
-  std::cerr << "Hotline tunnel: Lightweight peer to peer and NAT traversal VPN." << std::endl;
+  std::cerr << "Hotline tunnel: Lightweight peer to peer VPN." << std::endl;
   std::cerr << "Usage:" << std::endl;
   std::cerr << "Server side:  htunnel -server [-options]" << std::endl;
-  std::cerr << "Client side:  htunnel -k tunnel-key localport remoteport [-options]" << std::endl;
+  std::cerr << "Client side:  htunnel -r roomid localport remotehost:port [-options]" << std::endl;
   std::cerr << "options:" << std::endl;
   std::cerr << "         -udp      UDP mode" << std::endl;
   std::cerr << std::endl;

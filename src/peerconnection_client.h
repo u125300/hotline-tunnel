@@ -15,8 +15,10 @@ namespace hotline {
 
 struct PeerConnectionClientObserver {
 
-  virtual void OnSignedIn() = 0;  // Called when we're logged on.
+  virtual void OnSignedIn(std::string& room_id) = 0;
   virtual void OnDisconnected() = 0;
+  virtual void OnMessageFromPeer() = 0;
+  virtual void OnMessageSent() = 0;
   virtual void OnServerConnectionFailure() = 0;
 
  protected:
@@ -28,8 +30,17 @@ struct PeerConnectionClientObserver {
 class PeerConnectionClient : public sigslot::has_slots<>,
                              public rtc::MessageHandler {
 public:
-  PeerConnectionClient(bool client_mode);
+
+  enum MsgID {
+    CreateRoom  = 1,
+    JoinRoom    = 2
+  };
+
+  PeerConnectionClient();
   virtual ~PeerConnectionClient();
+
+  void InitClientMode(std::string& password);
+  void InitServerMode(std::string& password);
 
   void RegisterObserver(PeerConnectionClientObserver* callback);
   void Connect(const std::string& url);
@@ -53,15 +64,18 @@ private:
   void joined(Json::Value& data);
 
   template<typename  T>
-  bool Send(const std::string msgid, T& data);
+  bool Send(const MsgID msgid, T& data);
 
   //
   // Member variables
   //
 
-  int id_;
+  std::string room_id_;
   rtc::scoped_ptr<WebSocket> ws_;
   bool server_mode_;
+  std::string password_;
+  PeerConnectionClientObserver* callback_;
+
 };
 
 
