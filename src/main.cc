@@ -82,13 +82,13 @@ int PASCAL wWinMain(HINSTANCE instance, HINSTANCE prev_instance,
 
   rtc::InitializeSSL();
   hotline::PeerConnectionClient client;
-  hotline::PeerConnectionClient2 client2;
+  hotline::PeerConnectionClient2 client2(arguments.server_mode);
 
   rtc::scoped_refptr<hotline::Conductor> conductor(
     new rtc::RefCountedObject<hotline::Conductor>(&client, &client2, arguments, &wnd));
 
   //
-  // Connect to server
+  // Connect to signal server
   //
 
   std::string server_url = GetDefaultServerName();
@@ -100,8 +100,7 @@ int PASCAL wWinMain(HINSTANCE instance, HINSTANCE prev_instance,
   server_url.append(kDefaultServerPath);
 
   client2.Connect(server_url);
-
-
+  
   //
   // Main loop.
   //

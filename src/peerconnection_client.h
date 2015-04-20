@@ -28,7 +28,7 @@ struct PeerConnectionClientObserver2 {
 class PeerConnectionClient2 : public sigslot::has_slots<>,
                              public rtc::MessageHandler {
 public:
-  PeerConnectionClient2();
+  PeerConnectionClient2(bool client_mode);
   virtual ~PeerConnectionClient2();
 
   void RegisterObserver(PeerConnectionClientObserver2* callback);
@@ -39,18 +39,29 @@ public:
 
 protected:
   void InitSocketSignals();
-
-private:
   virtual void onOpen(WebSocket* ws);
   virtual void onMessage(WebSocket* ws, const WebSocket::Data& data);
   virtual void onClose(WebSocket* ws);
   virtual void onError(WebSocket* ws, const WebSocket::ErrorCode& error);
 
+private:
+
+  bool StartClientMode(int id);
+  bool StartServerMode();
+
+  void created(Json::Value& data);
+  void joined(Json::Value& data);
+
+  template<typename  T>
+  bool Send(const std::string msgid, T& data);
+
   //
   // Member variables
   //
 
+  int id_;
   rtc::scoped_ptr<WebSocket> ws_;
+  bool server_mode_;
 };
 
 
