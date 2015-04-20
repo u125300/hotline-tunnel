@@ -89,7 +89,6 @@ configure_file(
 # ============================================================================
 set(HEADERS
   "${PROJECT_BINARY_DIR}/htn_config.h"
-  "src/main_wnd.h"
   "src/conductor.h"
   "src/defaults.h"
   "src/socket.h"
@@ -98,13 +97,11 @@ set(HEADERS
   "src/websocket.h"
   "src/data_channel.h"
   "src/flagdefs.h"
-  "src/peer_connection_client.h"
   "src/peerconnection_client.h"
   )
 
 set(SOURCES
   "src/main.cc"
-  "src/main_wnd.cc"
   "src/conductor.cc"
   "src/defaults.cc"
   "src/socket.cc"
@@ -112,7 +109,6 @@ set(SOURCES
   "src/socket_client.cc"
   "src/websocket.cc"
   "src/data_channel.cc"
-  "src/peer_connection_client.cc"
   "src/peerconnection_client.cc"
   )
 
@@ -132,7 +128,7 @@ include_directories(
   "${LIBWEBSOCKETS_INCLUDE_DIR}"
   )
 
-add_executable(htunnel WIN32 ${HEADERS} ${SOURCES})
+add_executable(htunnel ${HEADERS} ${SOURCES})
 target_link_libraries(htunnel
   ${WEBRTC_LIBRARIES}
   ${LIBWEBSOCKETS_LIBRARIES}

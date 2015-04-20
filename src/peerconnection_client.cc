@@ -10,22 +10,22 @@
 
 namespace hotline {
 
-PeerConnectionClient2::PeerConnectionClient2(bool server_mode)
+PeerConnectionClient::PeerConnectionClient(bool server_mode)
   : server_mode_(server_mode)
   , id_(0)
 {
 }
 
-PeerConnectionClient2::~PeerConnectionClient2() {
+PeerConnectionClient::~PeerConnectionClient() {
  
 }
 
-void PeerConnectionClient2::RegisterObserver(PeerConnectionClientObserver2* callback) {
+void PeerConnectionClient::RegisterObserver(PeerConnectionClientObserver* callback) {
 
 }
 
 
-void PeerConnectionClient2::Connect(const std::string& url) {
+void PeerConnectionClient::Connect(const std::string& url) {
   ws_ = rtc::scoped_ptr<WebSocket>(new WebSocket());
   if (ws_==NULL) {
     LOG(LS_ERROR) << "WebSocket creation failed. ";
@@ -43,22 +43,22 @@ void PeerConnectionClient2::Connect(const std::string& url) {
 }
 
 
-void PeerConnectionClient2::InitSocketSignals() {
+void PeerConnectionClient::InitSocketSignals() {
   ASSERT(ws_.get() != NULL);
 
-  ws_->SignalConnectEvent.connect(this, &PeerConnectionClient2::onOpen);
-  ws_->SignalCloseEvent.connect(this, &PeerConnectionClient2::onClose);
-  ws_->SignalErrorEvent.connect(this, &PeerConnectionClient2::onError);
-  ws_->SignalReadEvent.connect(this, &PeerConnectionClient2::onMessage);
+  ws_->SignalConnectEvent.connect(this, &PeerConnectionClient::onOpen);
+  ws_->SignalCloseEvent.connect(this, &PeerConnectionClient::onClose);
+  ws_->SignalErrorEvent.connect(this, &PeerConnectionClient::onError);
+  ws_->SignalReadEvent.connect(this, &PeerConnectionClient::onMessage);
 }
 
 
-void PeerConnectionClient2::OnMessage(rtc::Message* msg) {
+void PeerConnectionClient::OnMessage(rtc::Message* msg) {
   
 }
 
 
-void PeerConnectionClient2::onOpen(WebSocket* ws) {
+void PeerConnectionClient::onOpen(WebSocket* ws) {
   
   if (server_mode_) {
     StartServerMode();
@@ -67,7 +67,7 @@ void PeerConnectionClient2::onOpen(WebSocket* ws) {
   }
 }
 
-void PeerConnectionClient2::onMessage(WebSocket* ws, const WebSocket::Data& data) {
+void PeerConnectionClient::onMessage(WebSocket* ws, const WebSocket::Data& data) {
   Json::Reader reader;
   Json::Value jmessage;
   if (!reader.parse(data.bytes, jmessage)) {
@@ -90,24 +90,24 @@ void PeerConnectionClient2::onMessage(WebSocket* ws, const WebSocket::Data& data
 
 }
 
-void PeerConnectionClient2::onClose(WebSocket* ws) {
+void PeerConnectionClient::onClose(WebSocket* ws) {
   
 }
   
 
-void PeerConnectionClient2::onError(WebSocket* ws, const WebSocket::ErrorCode& error) {
+void PeerConnectionClient::onError(WebSocket* ws, const WebSocket::ErrorCode& error) {
   
 }
 
 
-bool PeerConnectionClient2::StartClientMode(int id) {
+bool PeerConnectionClient::StartClientMode(int id) {
 
   Send("join", std::to_string(id));
 
   return false;
 }
 
-bool PeerConnectionClient2::StartServerMode() {
+bool PeerConnectionClient::StartServerMode() {
 
   //
   // Make new room
@@ -119,7 +119,7 @@ bool PeerConnectionClient2::StartServerMode() {
 }
 
 
-void PeerConnectionClient2::created(Json::Value& data) {
+void PeerConnectionClient::created(Json::Value& data) {
   bool successful;
   int id;
 
@@ -137,7 +137,7 @@ void PeerConnectionClient2::created(Json::Value& data) {
   id_ = id;
 }
 
-void PeerConnectionClient2::joined(Json::Value& data) {
+void PeerConnectionClient::joined(Json::Value& data) {
   bool successful;
   int id;
 
@@ -150,7 +150,7 @@ void PeerConnectionClient2::joined(Json::Value& data) {
 }
 
 template<typename T>
-bool PeerConnectionClient2::Send(const std::string msgid, T& data) {
+bool PeerConnectionClient::Send(const std::string msgid, T& data) {
 
   int version = HOTLINE_API_VERSION;
 

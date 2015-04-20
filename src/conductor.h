@@ -11,9 +11,7 @@
 #include "webrtc/base/socketaddress.h"
 #include "webrtc/p2p/base/portinterface.h"
 #include "talk/app/webrtc/peerconnectioninterface.h"
-#include "main_wnd.h"
 #include "data_channel.h"
-#include "peer_connection_client.h"
 #include "peerconnection_client.h"
 #include "socket_server.h"
 #include "socket_client.h"
@@ -44,9 +42,7 @@ class Conductor
     public webrtc::CreateSessionDescriptionObserver,
     public HotlineDataChannelObserver,
     public SocketObserver,
-    public PeerConnectionClientObserver,
-    public PeerConnectionClientObserver2,
-    public MainWndCallback {
+    public PeerConnectionClientObserver {
  public:
   enum CallbackID {
     MEDIA_CHANNELS_INITIALIZED = 1,
@@ -57,9 +53,7 @@ class Conductor
   };
 
   Conductor(PeerConnectionClient* client,
-            PeerConnectionClient2* client2,
-            UserArguments& arguments,
-            MainWindow* main_wnd);
+            UserArguments& arguments);
 
   bool connection_active() const;
 
@@ -125,33 +119,13 @@ class Conductor
   virtual void OnSocketOpen(SocketConnection* socket);
   virtual void OnSocketClosed(SocketConnection* socket);
 
+
   //
   // PeerConnectionClientObserver implementation.
   //
   virtual void OnSignedIn();
   virtual void OnDisconnected();
-  virtual void OnPeerConnected(int id, const std::string& name);
-  virtual void OnPeerDisconnected(int id);
-  virtual void OnMessageFromPeer(int peer_id, const std::string& message);
-  virtual void OnMessageSent(int err);
   virtual void OnServerConnectionFailure();
-
-  //
-  // PeerConnectionClientObserver2 implementation.
-  //
-  virtual void OnSignedIn2();
-  virtual void OnDisconnected2();
-  virtual void OnServerConnectionFailure2();
-
-  //
-  // MainWndCallback implementation.
-  //
-
-  virtual void StartLogin(const std::string& server, int port);
-  virtual void DisconnectFromServer();
-  virtual void ConnectToPeer(int peer_id);
-  virtual void DisconnectFromCurrentPeer();
-  virtual void UIThreadCallback(int msg_id, void* data);
 
   // CreateSessionDescriptionObserver implementation.
   virtual void OnSuccess(webrtc::SessionDescriptionInterface* desc);
@@ -167,8 +141,6 @@ class Conductor
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
       peer_connection_factory_;
   PeerConnectionClient* client_;
-  PeerConnectionClient2* client2_;
-  MainWindow* main_wnd_;
   std::deque<std::string*> pending_messages_;
 
   rtc::scoped_refptr<HotlineControlDataChannel> local_control_datachannel_;

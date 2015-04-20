@@ -48,25 +48,20 @@ class DummySetSessionDescriptionObserver
 
 
 Conductor::Conductor(PeerConnectionClient* client,
-                     PeerConnectionClient2* client2,
-                     UserArguments& arguments,
-                      MainWindow* main_wnd)
+                     UserArguments& arguments)
   : peer_id_(-1),
     loopback_(false),
     client_(client),
-    client2_(client2),
     server_mode_(arguments.server_mode),
     local_address_(arguments.local_address),
     remote_address_(arguments.remote_address),
     protocol_(arguments.protocol),
     tunnel_key_(arguments.tunnel_key),
-    local_datachannel_serial_(1),
-    main_wnd_(main_wnd) {
+    local_datachannel_serial_(1) {
 
   id_ = rtc::CreateRandomId64();
 
   client_->RegisterObserver(this);
-  client2_->RegisterObserver(this);
 
   if (server_mode_){
     socket_client_.RegisterObserver(this);
@@ -75,7 +70,7 @@ Conductor::Conductor(PeerConnectionClient* client,
     socket_listen_server_.RegisterObserver(this);
   }
   
-  main_wnd->RegisterObserver(this);
+  //:main_wnd->RegisterObserver(this);
 }
 
 Conductor::~Conductor() {
@@ -101,7 +96,7 @@ uint64 Conductor::id_from_string(std::string id_string) {
 }
 
 void Conductor::Close() {
-  client_->SignOut();
+  //:client_->SignOut();
   DeletePeerConnection();
 }
 
@@ -112,15 +107,13 @@ bool Conductor::InitializePeerConnection() {
   peer_connection_factory_  = webrtc::CreatePeerConnectionFactory();
 
   if (!peer_connection_factory_.get()) {
-    main_wnd_->MessageBox("Error",
-        "Failed to initialize PeerConnectionFactory", true);
+    printf("Error: Failed to initialize PeerConnectionFactory\n");
     DeletePeerConnection();
     return false;
   }
 
   if (!CreatePeerConnection(DTLS_ON)) {
-    main_wnd_->MessageBox("Error",
-        "CreatePeerConnection failed", true);
+    printf("Error: CreatePeerConnection failed\n");
     DeletePeerConnection();
   }
   
@@ -128,7 +121,7 @@ bool Conductor::InitializePeerConnection() {
                               kControlDataLabel;
   AddDataChannels(std::string(channel_name), true);
 
-  main_wnd_->SwitchToStreamingUI();
+  //:main_wnd_->SwitchToStreamingUI();
 
   return peer_connection_.get() != NULL;
 }
@@ -173,8 +166,8 @@ bool Conductor::CreatePeerConnection(bool dtls) {
 void Conductor::DeletePeerConnection() {
   peer_connection_ = NULL;
   datachannels_.clear();
-  main_wnd_->StopLocalRenderer();
-  main_wnd_->StopRemoteRenderer();
+  //:main_wnd_->StopLocalRenderer();
+  //:main_wnd_->StopRemoteRenderer();
   peer_connection_factory_ = NULL;
   peer_id_ = -1;
   loopback_ = false;
@@ -182,10 +175,10 @@ void Conductor::DeletePeerConnection() {
 
 void Conductor::EnsureStreamingUI() {
   ASSERT(peer_connection_.get() != NULL);
-  if (main_wnd_->IsWindow()) {
-    if (main_wnd_->current_ui() != MainWindow::STREAMING)
-      main_wnd_->SwitchToStreamingUI();
-  }
+  //:if (main_wnd_->IsWindow()) {
+  //:  if (main_wnd_->current_ui() != MainWindow::STREAMING)
+  //:    main_wnd_->SwitchToStreamingUI();
+  //:}
 }
 
 //
@@ -197,15 +190,15 @@ void Conductor::OnAddStream(webrtc::MediaStreamInterface* stream) {
   LOG(INFO) << __FUNCTION__ << " " << stream->label();
 
   stream->AddRef();
-  main_wnd_->QueueUIThreadCallback(NEW_STREAM_ADDED,
-                                   stream);
+  //:main_wnd_->QueueUIThreadCallback(NEW_STREAM_ADDED,
+  //:                                 stream);
 }
 
 void Conductor::OnRemoveStream(webrtc::MediaStreamInterface* stream) {
   LOG(INFO) << __FUNCTION__ << " " << stream->label();
   stream->AddRef();
-  main_wnd_->QueueUIThreadCallback(STREAM_REMOVED,
-                                   stream);
+  //:main_wnd_->QueueUIThreadCallback(STREAM_REMOVED,
+  //:                                 stream);
 }
 
 // Remote peer created data channel.
@@ -381,14 +374,15 @@ void Conductor::OnSocketClosed(SocketConnection* socket){
 }
 
 
-
+//:
+/*
 //
 // PeerConnectionClientObserver implementation.
 //
 
 void Conductor::OnSignedIn() {
   LOG(INFO) << __FUNCTION__;
-  main_wnd_->SwitchToPeerList(client_->peers());
+  //:main_wnd_->SwitchToPeerList(client_->peers());
 }
 
 void Conductor::OnDisconnected() {
@@ -396,26 +390,26 @@ void Conductor::OnDisconnected() {
 
   DeletePeerConnection();
 
-  if (main_wnd_->IsWindow())
-    main_wnd_->SwitchToConnectUI();
+  //:if (main_wnd_->IsWindow())
+  //:  main_wnd_->SwitchToConnectUI();
 }
 
 void Conductor::OnPeerConnected(int id, const std::string& name) {
   LOG(INFO) << __FUNCTION__;
   // Refresh the list if we're showing it.
-  if (main_wnd_->current_ui() == MainWindow::LIST_PEERS)
-    main_wnd_->SwitchToPeerList(client_->peers());
+  //:if (main_wnd_->current_ui() == MainWindow::LIST_PEERS)
+  //:  main_wnd_->SwitchToPeerList(client_->peers());
 }
 
 void Conductor::OnPeerDisconnected(int id) {
   LOG(INFO) << __FUNCTION__;
   if (id == peer_id_) {
     LOG(INFO) << "Our peer disconnected";
-    main_wnd_->QueueUIThreadCallback(PEER_CONNECTION_CLOSED, NULL);
+    //:main_wnd_->QueueUIThreadCallback(PEER_CONNECTION_CLOSED, NULL);
   } else {
     // Refresh the list if we're showing it.
-    if (main_wnd_->current_ui() == MainWindow::LIST_PEERS)
-      main_wnd_->SwitchToPeerList(client_->peers());
+    //:if (main_wnd_->current_ui() == MainWindow::LIST_PEERS)
+    //:  main_wnd_->SwitchToPeerList(client_->peers());
   }
 }
 
@@ -508,25 +502,25 @@ void Conductor::OnMessageFromPeer(int peer_id, const std::string& message) {
 
 void Conductor::OnMessageSent(int err) {
   // Process the next pending message if any.
-  main_wnd_->QueueUIThreadCallback(SEND_MESSAGE_TO_PEER, NULL);
+  //:main_wnd_->QueueUIThreadCallback(SEND_MESSAGE_TO_PEER, NULL);
 }
 
 void Conductor::OnServerConnectionFailure() {
-  main_wnd_->MessageBox("Error", ("Failed to connect to " + server_).c_str(),
-                          true);
+  //:main_wnd_->MessageBox("Error", ("Failed to connect to " + server_).c_str(),
+  //:                        true);
 }
 
+*/
 
-
-void Conductor::OnSignedIn2() {
-
-}
-
-void Conductor::OnDisconnected2() {
+void Conductor::OnSignedIn() {
 
 }
 
-void Conductor::OnServerConnectionFailure2() {
+void Conductor::OnDisconnected() {
+
+}
+
+void Conductor::OnServerConnectionFailure() {
 
 }
 
@@ -535,6 +529,8 @@ void Conductor::OnServerConnectionFailure2() {
 // MainWndCallback implementation.
 //
 
+//:
+/*
 void Conductor::StartLogin(const std::string& server, int port) {
   if (client_->is_connected())
     return;
@@ -552,8 +548,7 @@ void Conductor::ConnectToPeer(int peer_id) {
   ASSERT(peer_id != -1);
 
   if (peer_connection_.get()) {
-    main_wnd_->MessageBox("Error",
-        "We only support connecting to one peer at a time", true);
+    printf("Error: We only support connecting to one peer at a time\n");
     return;
   }
 
@@ -561,10 +556,10 @@ void Conductor::ConnectToPeer(int peer_id) {
     peer_id_ = peer_id;
     peer_connection_->CreateOffer(this, NULL);
   } else {
-    main_wnd_->MessageBox("Error", "Failed to initialize PeerConnection", true);
+    printf("Error: Failed to initialize PeerConnection\n");
   }
 }
-
+*/
 
 //
 // Add data channels to send
@@ -643,7 +638,8 @@ void Conductor::RemoveClientInfo(std::string& channel_name) {
 }
 
 
-
+//:
+/*
 void Conductor::DisconnectFromCurrentPeer() {
   LOG(INFO) << __FUNCTION__;
   if (peer_connection_.get()) {
@@ -651,8 +647,8 @@ void Conductor::DisconnectFromCurrentPeer() {
     DeletePeerConnection();
   }
 
-  if (main_wnd_->IsWindow())
-    main_wnd_->SwitchToPeerList(client_->peers());
+  //:if (main_wnd_->IsWindow())
+  //:  main_wnd_->SwitchToPeerList(client_->peers());
 }
 
 void Conductor::UIThreadCallback(int msg_id, void* data) {
@@ -663,15 +659,15 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
 
       ASSERT(datachannels_.empty());
 
-      if (main_wnd_->IsWindow()) {
-        if (client_->is_connected()) {
-          main_wnd_->SwitchToPeerList(client_->peers());
-        } else {
-          main_wnd_->SwitchToConnectUI();
-        }
-      } else {
-        DisconnectFromServer();
-      }
+      //:if (main_wnd_->IsWindow()) {
+      //:  if (client_->is_connected()) {
+      //:    main_wnd_->SwitchToPeerList(client_->peers());
+      //:  } else {
+      //:    main_wnd_->SwitchToConnectUI();
+      //:  }
+      //:} else {
+      //:  DisconnectFromServer();
+      //:}
       break;
 
     case SEND_MESSAGE_TO_PEER: {
@@ -709,7 +705,7 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
       // Only render the first track.
       if (!tracks.empty()) {
         webrtc::VideoTrackInterface* track = tracks[0];
-        main_wnd_->StartRemoteRenderer(track);
+        //:main_wnd_->StartRemoteRenderer(track);
       }
       stream->Release();
       break;
@@ -729,6 +725,7 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
       break;
   }
 }
+*/
 
 void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc) {
   peer_connection_->SetLocalDescription(
@@ -761,7 +758,7 @@ void Conductor::OnFailure(const std::string& error) {
 
 void Conductor::SendMessage(const std::string& json_object) {
   std::string* msg = new std::string(json_object);
-  main_wnd_->QueueUIThreadCallback(SEND_MESSAGE_TO_PEER, msg);
+  //:main_wnd_->QueueUIThreadCallback(SEND_MESSAGE_TO_PEER, msg);
 }
 
 } // namespace hotline

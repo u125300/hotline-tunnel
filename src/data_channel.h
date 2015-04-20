@@ -11,7 +11,6 @@
 #include "webrtc/base/json.h"
 #include "talk/app/webrtc/mediastreaminterface.h"
 #include "talk/app/webrtc/peerconnectioninterface.h"
-#include "peer_connection_client.h"
 #include "defaults.h"
 
 namespace hotline {

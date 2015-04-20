@@ -13,25 +13,25 @@
 
 namespace hotline {
 
-struct PeerConnectionClientObserver2 {
+struct PeerConnectionClientObserver {
 
-  virtual void OnSignedIn2() = 0;  // Called when we're logged on.
-  virtual void OnDisconnected2() = 0;
-  virtual void OnServerConnectionFailure2() = 0;
+  virtual void OnSignedIn() = 0;  // Called when we're logged on.
+  virtual void OnDisconnected() = 0;
+  virtual void OnServerConnectionFailure() = 0;
 
  protected:
-  virtual ~PeerConnectionClientObserver2() {}
+  virtual ~PeerConnectionClientObserver() {}
 
 };
 
 
-class PeerConnectionClient2 : public sigslot::has_slots<>,
+class PeerConnectionClient : public sigslot::has_slots<>,
                              public rtc::MessageHandler {
 public:
-  PeerConnectionClient2(bool client_mode);
-  virtual ~PeerConnectionClient2();
+  PeerConnectionClient(bool client_mode);
+  virtual ~PeerConnectionClient();
 
-  void RegisterObserver(PeerConnectionClientObserver2* callback);
+  void RegisterObserver(PeerConnectionClientObserver* callback);
   void Connect(const std::string& url);
 
   // implements the MessageHandler interface

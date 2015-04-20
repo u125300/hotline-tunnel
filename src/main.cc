@@ -10,8 +10,6 @@
 
 #include "conductor.h"
 #include "flagdefs.h"
-#include "main_wnd.h"
-#include "peer_connection_client.h"
 #include "peerconnection_client.h"
 
 
@@ -20,12 +18,8 @@ void Error(const std::string& msg);
 void FatalError(const std::string& msg);
 
 
-int PASCAL wWinMain(HINSTANCE instance, HINSTANCE prev_instance,
-                    wchar_t* cmd_line, int cmd_show) {
-
+int main(int argc, char** argv) {
   rtc::WindowsCommandLineArguments win_args;
-  int argc = win_args.argc();
-  char **argv = win_args.argv();
 
   rtc::FlagList::SetFlagsFromCommandLine(&argc, argv, true);
   if (FLAG_help) {
@@ -74,18 +68,11 @@ int PASCAL wWinMain(HINSTANCE instance, HINSTANCE prev_instance,
   rtc::Win32Thread w32_thread;
   rtc::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
 
-  hotline::MainWnd wnd("localhost", FLAG_port, FLAG_autoconnect, FLAG_autocall);
-  if (!wnd.Create()) {
-    ASSERT(false);
-    return -1;
-  }
-
   rtc::InitializeSSL();
-  hotline::PeerConnectionClient client;
-  hotline::PeerConnectionClient2 client2(arguments.server_mode);
+  hotline::PeerConnectionClient client(arguments.server_mode);
 
   rtc::scoped_refptr<hotline::Conductor> conductor(
-    new rtc::RefCountedObject<hotline::Conductor>(&client, &client2, arguments, &wnd));
+    new rtc::RefCountedObject<hotline::Conductor>(&client, arguments));
 
   //
   // Connect to signal server
@@ -99,30 +86,9 @@ int PASCAL wWinMain(HINSTANCE instance, HINSTANCE prev_instance,
   if (server_url.back() != '/') server_url.push_back('/');
   server_url.append(kDefaultServerPath);
 
-  client2.Connect(server_url);
-  
-  //
-  // Main loop.
-  //
+  client.Connect(server_url);
 
-  MSG msg;
-  BOOL gm;
-  while ((gm = ::GetMessage(&msg, NULL, 0, 0)) != 0 && gm != -1) {
-    if (!wnd.PreTranslateMessage(&msg)) {
-      ::TranslateMessage(&msg);
-      ::DispatchMessage(&msg);
-    }
-  }
-
-  if (conductor->connection_active() || client.is_connected()) {
-    while ((conductor->connection_active() || client.is_connected()) &&
-           (gm = ::GetMessage(&msg, NULL, 0, 0)) != 0 && gm != -1) {
-      if (!wnd.PreTranslateMessage(&msg)) {
-        ::TranslateMessage(&msg);
-        ::DispatchMessage(&msg);
-      }
-    }
-  }
+  rtc::ThreadManager::Instance()->CurrentThread()->Run();
 
   rtc::CleanupSSL();
   return 0;
