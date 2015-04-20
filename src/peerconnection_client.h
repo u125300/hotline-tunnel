@@ -36,11 +36,11 @@ public:
     JoinRoom    = 2
   };
 
-  PeerConnectionClient();
+  PeerConnectionClient(rtc::Thread* signal_thread);
   virtual ~PeerConnectionClient();
 
-  void InitClientMode(std::string& password);
-  void InitServerMode(std::string& password);
+  bool InitClientMode(std::string& password, std::string& room_id);
+  bool InitServerMode(std::string& password);
 
   void RegisterObserver(PeerConnectionClientObserver* callback);
   void Connect(const std::string& url);
@@ -57,11 +57,12 @@ protected:
 
 private:
 
-  bool StartClientMode(int id);
+  bool StartClientMode();
   bool StartServerMode();
 
-  void created(Json::Value& data);
-  void joined(Json::Value& data);
+  void Created(Json::Value& data);
+  void Joined(Json::Value& data);
+  void Exit();
 
   template<typename  T>
   bool Send(const MsgID msgid, T& data);
@@ -75,7 +76,7 @@ private:
   bool server_mode_;
   std::string password_;
   PeerConnectionClientObserver* callback_;
-
+  rtc::Thread *signal_thread_;
 };
 
 

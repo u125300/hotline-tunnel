@@ -64,18 +64,24 @@ int main(int argc, char** argv) {
   // Setup conductor
   //
 
+#if WIN32
   rtc::EnsureWinsockInit();
   rtc::Win32Thread w32_thread;
   rtc::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
+#endif
 
   rtc::InitializeSSL();
-  hotline::PeerConnectionClient client;
+  hotline::PeerConnectionClient client(rtc::ThreadManager::Instance()->CurrentThread());
 
   if (arguments.server_mode) {
-    client.InitServerMode(arguments.password);
+    if (!client.InitServerMode(arguments.password)) {
+      return false;
+    }
   }
   else {
-    client.InitClientMode(arguments.password);
+    if (!client.InitClientMode(arguments.password, arguments.room_id)) {
+      return false;
+    }
   }
 
   rtc::scoped_refptr<hotline::Conductor> conductor(
