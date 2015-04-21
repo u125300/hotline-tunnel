@@ -49,7 +49,7 @@ class DummySetSessionDescriptionObserver
 
 Conductor::Conductor(PeerConnectionClient* client,
                      UserArguments& arguments)
-  : peer_id_(-1),
+  : peer_id_(0),
     loopback_(false),
     client_(client),
     server_mode_(arguments.server_mode),
@@ -169,7 +169,7 @@ void Conductor::DeletePeerConnection() {
   //:main_wnd_->StopLocalRenderer();
   //:main_wnd_->StopRemoteRenderer();
   peer_connection_factory_ = NULL;
-  peer_id_ = -1;
+  peer_id_ = 0;
   loopback_ = false;
 }
 
@@ -414,11 +414,11 @@ void Conductor::OnPeerDisconnected(int id) {
 }
 
 void Conductor::OnMessageFromPeer(int peer_id, const std::string& message) {
-  ASSERT(peer_id_ == peer_id || peer_id_ == -1);
+  ASSERT(peer_id_ == peer_id || peer_id_ == 0);
   ASSERT(!message.empty());
 
   if (!peer_connection_.get()) {
-    ASSERT(peer_id_ == -1);
+    ASSERT(peer_id_ == 0);
     peer_id_ = peer_id;
 
     if (!InitializePeerConnection()) {
@@ -427,7 +427,7 @@ void Conductor::OnMessageFromPeer(int peer_id, const std::string& message) {
       return;
     }
   } else if (peer_id != peer_id_) {
-    ASSERT(peer_id_ != -1);
+    ASSERT(peer_id_ != 0);
     LOG(WARNING) << "Received a message from unknown peer while already in a "
                     "conversation with a different peer.";
     return;
@@ -548,6 +548,9 @@ void Conductor::OnDisconnected() {
 
 void Conductor::OnServerConnectionFailure() {
 
+  if (!server_mode_) {
+    rtc::ThreadManager::Instance()->CurrentThread()->Stop();
+  }
 }
 
 
@@ -570,8 +573,8 @@ void Conductor::DisconnectFromServer() {
 }
 
 void Conductor::ConnectToPeer(int peer_id) {
-  ASSERT(peer_id_ == -1);
-  ASSERT(peer_id != -1);
+  ASSERT(peer_id_ == 0);
+  ASSERT(peer_id != 0);
 
   if (peer_connection_.get()) {
     printf("Error: We only support connecting to one peer at a time\n");
@@ -586,6 +589,23 @@ void Conductor::ConnectToPeer(int peer_id) {
   }
 }
 */
+
+void Conductor::ConnectToPeer(uint64 peer_id) {
+#if 0
+  ASSERT( !server_mode_ );
+
+  if (peer_connection_.get()) {
+    printf("Error: We only support connecting to one peer at a time\n");
+    return;
+  }
+
+  if (InitializePeerConnection()) {
+    peer_connection_->CreateOffer(this, NULL);
+  } else {
+    printf("Error: Failed to initialize PeerConnection\n");
+  }
+#endif
+}
 
 //
 // Add data channels to send
@@ -710,7 +730,7 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
         msg = pending_messages_.front();
         pending_messages_.pop_front();
 
-        if (!client_->SendToPeer(peer_id_, *msg) && peer_id_ != -1) {
+        if (!client_->SendToPeer(peer_id_, *msg) && peer_id_ != 0) {
           LOG(LS_ERROR) << "SendToPeer failed";
           DisconnectFromServer();
         }
@@ -718,7 +738,7 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
       }
 
       if (!peer_connection_.get())
-        peer_id_ = -1;
+        peer_id_ = 0;
 
       break;
     }
@@ -774,7 +794,10 @@ void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc) {
   Json::Value jmessage;
   jmessage[kSessionDescriptionTypeName] = desc->type();
   jmessage[kSessionDescriptionSdpName] = sdp;
-  SendMessage(writer.write(jmessage));
+  jmessage["room_id"] = room_id_;
+  jmessage["peer_id"] = std::to_string(peer_id_);
+  client_->Send(PeerConnectionClient::SendMessageToPeer, jmessage);
+//:  SendMessage(writer.write(jmessage));
 }
 
 void Conductor::OnFailure(const std::string& error) {

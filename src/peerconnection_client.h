@@ -32,8 +32,9 @@ class PeerConnectionClient : public sigslot::has_slots<>,
 public:
 
   enum MsgID {
-    CreateRoom  = 1,
-    JoinRoom    = 2
+    SigninAsServer  = 1,
+    SigninAsClient    = 2,
+    SendMessageToPeer = 3
   };
 
   PeerConnectionClient(rtc::Thread* signal_thread);
@@ -48,6 +49,9 @@ public:
   // implements the MessageHandler interface
   void OnMessage(rtc::Message* msg);
 
+  template<typename  T>
+  bool Send(const MsgID msgid, T& data);
+
 protected:
   void InitSocketSignals();
   virtual void onOpen(WebSocket* ws);
@@ -60,18 +64,17 @@ private:
   bool StartClientMode();
   bool StartServerMode();
 
-  void Created(Json::Value& data);
-  void Joined(Json::Value& data);
+  void SignedInAsServer(Json::Value& data);
+  void SignedInAsClient(Json::Value& data);
   void Exit();
 
-  template<typename  T>
-  bool Send(const MsgID msgid, T& data);
 
   //
   // Member variables
   //
 
   std::string room_id_;
+  uint64 peer_id_;
   rtc::scoped_ptr<WebSocket> ws_;
   bool server_mode_;
   std::string password_;

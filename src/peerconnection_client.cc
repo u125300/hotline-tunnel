@@ -14,6 +14,7 @@ namespace hotline {
 
 PeerConnectionClient::PeerConnectionClient(rtc::Thread* signal_thread)
   : callback_(NULL)
+  , peer_id_(0)
   , signal_thread_(signal_thread)
 {
 }
@@ -83,7 +84,8 @@ void PeerConnectionClient::OnMessage(rtc::Message* msg) {
 
   // Default message id
   if (msg->message_id == 0) {
-    rtc::ThreadManager::Instance()->CurrentThread()->Stop();
+    ASSERT(callback_ != NULL);
+    callback_->OnServerConnectionFailure();
   }
 }
 
@@ -112,13 +114,12 @@ void PeerConnectionClient::onMessage(WebSocket* ws, const WebSocket::Data& data)
   if(!GetIntFromJsonObject(jmessage, "msgid", (int*)&msgid)) return;
   if(!GetValueFromJsonObject(jmessage, "data", &payload_data)) return;
 
-  if (msgid == CreateRoom) {
-    Created(payload_data);
+  if (msgid == SigninAsServer) {
+    SignedInAsServer(payload_data);
   }
-  else if (msgid == JoinRoom) {
-    Joined(payload_data);
+  else if (msgid == SigninAsClient) {
+    SignedInAsClient(payload_data);
   }
-
 }
 
 void PeerConnectionClient::onClose(WebSocket* ws) {
@@ -137,7 +138,7 @@ bool PeerConnectionClient::StartClientMode() {
   jdata["password"] = password_;
   jdata["room_id"] = room_id_;
 
-  return Send(JoinRoom, jdata);
+  return Send(SigninAsClient, jdata);
 }
 
 bool PeerConnectionClient::StartServerMode() {
@@ -145,17 +146,18 @@ bool PeerConnectionClient::StartServerMode() {
   Json::Value jdata;
   jdata["password"] = password_;
 
-  return Send(CreateRoom, jdata);
-
+  return Send(SigninAsServer, jdata);
 }
 
 
-void PeerConnectionClient::Created(Json::Value& data) {
+void PeerConnectionClient::SignedInAsServer(Json::Value& data) {
   bool successful;
-  std::string id;
+  std::string room_id;
+  std::string peer_id;
 
   if(!GetBoolFromJsonObject(data, "successful", &successful)
-      || !GetStringFromJsonObject(data, "id", &id)) {
+      || !GetStringFromJsonObject(data, "room_id", &room_id)
+      || !GetStringFromJsonObject(data, "peer_id", &peer_id)) {
     LOG(LS_WARNING) << "Invalid message format";
     printf("Error: Server response error\n");
     Exit();
@@ -168,16 +170,19 @@ void PeerConnectionClient::Created(Json::Value& data) {
     return;
   }
 
-  room_id_ = id;
-  callback_->OnSignedIn(id);
+  room_id_ = room_id;
+  peer_id_ = strtoull(peer_id.c_str(), NULL, 10);
+  callback_->OnSignedIn(room_id);
 }
 
-void PeerConnectionClient::Joined(Json::Value& data) {
+void PeerConnectionClient::SignedInAsClient(Json::Value& data) {
   bool successful;
-  std::string id;
+  std::string room_id;
+  std::string peer_id;
 
   if(!GetBoolFromJsonObject(data, "successful", &successful)
-      || !GetStringFromJsonObject(data, "id", &id)){
+      || !GetStringFromJsonObject(data, "room_id", &room_id)
+      || !GetStringFromJsonObject(data, "peer_id", &peer_id)){
     LOG(LS_WARNING) << "Invalid message format";
     Exit();
     return;
@@ -193,7 +198,8 @@ void PeerConnectionClient::Joined(Json::Value& data) {
     return;
   }
 
-  ASSERT(id == room_id_);
+  ASSERT(room_id == room_id_);
+  peer_id_ = strtoull(peer_id.c_str(), NULL, 10);
   callback_->OnSignedIn(room_id_);
 }
 

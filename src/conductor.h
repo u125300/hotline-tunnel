@@ -90,6 +90,9 @@ class Conductor
   ClientInfo* FindClientInfo(std::string& channel_name);
   void RemoveClientInfo(std::string& channel_name);
 
+  void ConnectToPeer(uint64 peer_id);
+
+
   //
   // PeerConnectionObserver implementation.
   //
@@ -138,7 +141,7 @@ class Conductor
   // Send a message to the remote peer.
   void SendMessage(const std::string& json_object);
 
-  int peer_id_;
+  uint64 peer_id_;
   bool loopback_;
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
