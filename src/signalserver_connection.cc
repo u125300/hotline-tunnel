@@ -40,8 +40,12 @@ void SignalServerConnection::Connect(const std::string& url) {
   return;
 }
 
-void SignalServerConnection::CreateRoom() {
-  Send(MsgCreateRoom);
+void SignalServerConnection::CreateRoom(const std::string& password) {
+
+  Json::Value jdata;
+  jdata["password"] = password;
+
+  Send(MsgCreateRoom, jdata);
 }
 
 void SignalServerConnection::SignIn(std::string& room_id, std::string& password) {
@@ -83,7 +87,7 @@ void SignalServerConnection::OnMessage(rtc::Message* msg) {
 
 
 void SignalServerConnection::onOpen(WebSocket* ws) {
-  
+  callback_->OnConnected();
 }
 
 void SignalServerConnection::onMessage(WebSocket* ws, const WebSocket::Data& data) {
@@ -100,7 +104,17 @@ void SignalServerConnection::onMessage(WebSocket* ws, const WebSocket::Data& dat
   if(!GetIntFromJsonObject(jmessage, "msgid", (int*)&msgid)) return;
   if(!GetValueFromJsonObject(jmessage, "data", &payload_data)) return;
 
-  if (msgid == MsgCreateRoom) OnCreatedRoom(payload_data);
+  switch (msgid) {
+  case MsgCreateRoom:
+    OnCreatedRoom(payload_data);
+    break;
+  case MsgSignIn:
+    OnSignedIn(payload_data);
+    break;
+  default:
+    break;
+  }
+
 }
 
 void SignalServerConnection::onClose(WebSocket* ws) {
@@ -137,11 +151,13 @@ void SignalServerConnection::OnSignedIn(Json::Value& data) {
   bool successful;
   std::string room_id;
   std::string peer_id;
+  std::string message;
   uint64 npeer_id;
 
   if(!GetBoolFromJsonObject(data, "successful", &successful)
       || !GetStringFromJsonObject(data, "room_id", &room_id)
       || !GetStringFromJsonObject(data, "peer_id", &peer_id)
+      || !GetStringFromJsonObject(data, "message", &message)
       ) {
     LOG(LS_WARNING) << "Invalid message format";
     printf("Error: Server response error\n");
@@ -150,7 +166,7 @@ void SignalServerConnection::OnSignedIn(Json::Value& data) {
   }
 
   if (!successful) {
-    LOG(LS_WARNING) << "Room creation failed.";
+    LOG(LS_WARNING) << message.c_str();
     Close();
     return;
   }

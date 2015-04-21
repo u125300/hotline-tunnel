@@ -59,6 +59,7 @@ Conductor::Conductor(SignalServerConnection* signal_client,
     remote_address_(arguments.remote_address),
     protocol_(arguments.protocol),
     room_id_(arguments.room_id),
+    password_(arguments.password),
     local_datachannel_serial_(1) {
 
   signal_client_->RegisterObserver(this);
@@ -513,14 +514,13 @@ void Conductor::OnServerConnectionFailure() {
 
 */
 
-
-void Conductor::OnSignedInAsClient(std::string& room_id, uint64 peer_id, uint64 server_peer_id) {
-
-  ASSERT(!server_mode_);
-  ASSERT(room_id==room_id_);
-
-  id_ = peer_id;
-
+void Conductor::OnConnected() {
+  if (server_mode_) {
+    signal_client_->CreateRoom(password_);
+  }
+  else {
+    signal_client_->SignIn(room_id_, password_);
+  }
 }
 
 void Conductor::OnCreatedRoom(std::string& room_id) {
@@ -528,17 +528,18 @@ void Conductor::OnCreatedRoom(std::string& room_id) {
 
   room_id_ = room_id;
   printf("Your room id is %s\n", room_id.c_str());
+
+  signal_client_->SignIn(room_id_, password_);
 } 
 
 void Conductor::OnSignedIn(std::string& room_id, uint64 peer_id) {
+
   if (server_mode_) {
     ASSERT(room_id_==room_id);
-    id_ = peer_id;
   }
-  else {
-    room_id_ = room_id;
-    id_ = peer_id;
-  }
+
+  room_id_ = room_id;
+  id_ = peer_id;
 }
 
 

@@ -128,12 +128,12 @@ class Conductor
   // SignalServerConnectionObserver implementation.
   //
 
-  virtual void OnSignedInAsClient(std::string& room_id, uint64 peer_id, uint64 server_peer_id);
+  virtual void OnConnected();
+  virtual void OnDisconnected();
   virtual void OnCreatedRoom(std::string& room_id);
   virtual void OnSignedIn(std::string& room_id, uint64 peer_id);
   virtual void OnMessageFromPeer();
   virtual void OnMessageSent();
-  virtual void OnDisconnected();
   virtual void OnServerConnectionFailure();
 
   // CreateSessionDescriptionObserver implementation.
@@ -166,6 +166,7 @@ class Conductor
   rtc::SocketAddress local_address_;
   rtc::SocketAddress remote_address_;
   std::string room_id_;
+  std::string password_;
   cricket::ProtocolType protocol_;
 
   uint64 id_;

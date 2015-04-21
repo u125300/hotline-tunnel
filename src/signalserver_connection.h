@@ -17,9 +17,10 @@ namespace hotline {
 
 struct SignalServerConnectionObserver {
 
+  virtual void OnConnected() = 0;
+  virtual void OnDisconnected() = 0;
   virtual void OnCreatedRoom(std::string& room_id) = 0;
   virtual void OnSignedIn(std::string& room_id, uint64 peer_id) = 0;
-  virtual void OnDisconnected() = 0;
   virtual void OnMessageFromPeer() = 0;
   virtual void OnMessageSent() = 0;
   virtual void OnServerConnectionFailure() = 0;
@@ -45,7 +46,7 @@ public:
   virtual ~SignalServerConnection();
 
   void Connect(const std::string& url);
-  void CreateRoom();
+  void CreateRoom(const std::string& password);
   void SignIn(std::string& room_id, std::string& password);
 
   void RegisterObserver(SignalServerConnectionObserver* callback);
@@ -58,7 +59,6 @@ public:
   void OnMessage(rtc::Message* msg);
 
 protected:
-  void InitSocketSignals();
   virtual void onOpen(WebSocket* ws);
   virtual void onMessage(WebSocket* ws, const WebSocket::Data& data);
   virtual void onClose(WebSocket* ws);
@@ -68,10 +68,8 @@ protected:
   virtual void OnSignedIn(Json::Value& data);
 
 private:
-
-  void SignedIn(Json::Value& data);
+  void InitSocketSignals();
   void Close();
-
 
   //
   // Member variables
