@@ -12,7 +12,7 @@
 #include "conductor_client.h"
 #include "conductor_server.h"
 #include "flagdefs.h"
-#include "peerconnection_client.h"
+#include "signalserver_connection.h"
 
 
 void Usage();
@@ -73,20 +73,14 @@ int main(int argc, char** argv) {
 #endif
 
   rtc::InitializeSSL();
-  hotline::PeerConnectionClient client(rtc::ThreadManager::Instance()->CurrentThread());
+  hotline::SignalServerConnection signal_client(rtc::ThreadManager::Instance()->CurrentThread());
   rtc::scoped_ptr<hotline::Conductor> conductor;
 
   if (arguments.server_mode) {
-    if (!client.InitServerMode(arguments.password)) {
-      return false;
-    }
-    conductor.reset(new rtc::RefCountedObject<hotline::ConductorServer>(&client, arguments));
+    conductor.reset(new rtc::RefCountedObject<hotline::ConductorServer>(&signal_client, arguments));
   }
   else {
-    if (!client.InitClientMode(arguments.password, arguments.room_id)) {
-      return false;
-    }
-    conductor.reset(new rtc::RefCountedObject<hotline::ConductorClient>(&client, arguments));
+    conductor.reset(new rtc::RefCountedObject<hotline::ConductorClient>(&signal_client, arguments));
   }
 
 
@@ -102,7 +96,7 @@ int main(int argc, char** argv) {
   if (server_url.back() != '/') server_url.push_back('/');
   server_url.append(kDefaultServerPath);
 
-  client.Connect(server_url);
+  signal_client.Connect(server_url);
 
   rtc::ThreadManager::Instance()->CurrentThread()->Run();
 

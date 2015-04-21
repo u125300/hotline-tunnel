@@ -4,9 +4,9 @@
 namespace hotline {
 
 
-ConductorClient::ConductorClient(PeerConnectionClient* client,
+ConductorClient::ConductorClient(SignalServerConnection* signal_client,
                      UserArguments& arguments)
-  : Conductor(client, arguments)
+  : Conductor(signal_client, arguments)
 {
 }
 

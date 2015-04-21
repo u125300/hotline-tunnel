@@ -12,7 +12,7 @@
 #include "webrtc/p2p/base/portinterface.h"
 #include "talk/app/webrtc/peerconnectioninterface.h"
 #include "data_channel.h"
-#include "peerconnection_client.h"
+#include "signalserver_connection.h"
 #include "socket_server.h"
 #include "socket_client.h"
 
@@ -43,7 +43,7 @@ class Conductor
     public webrtc::CreateSessionDescriptionObserver,
     public HotlineDataChannelObserver,
     public SocketObserver,
-    public PeerConnectionClientObserver {
+    public SignalServerConnectionObserver {
  public:
   enum CallbackID {
     MEDIA_CHANNELS_INITIALIZED = 1,
@@ -53,9 +53,9 @@ class Conductor
     STREAM_REMOVED,
   };
 
-  Conductor(PeerConnectionClient* client,
+  Conductor(SignalServerConnection* signal_client,
             UserArguments& arguments);
-  ~Conductor();
+  virtual ~Conductor();
 
   bool connection_active() const;
 
@@ -125,10 +125,12 @@ class Conductor
 
 
   //
-  // PeerConnectionClientObserver implementation.
+  // SignalServerConnectionObserver implementation.
   //
-  virtual void OnSignedInAsServer(std::string& room_id, uint64 peer_id);
+
   virtual void OnSignedInAsClient(std::string& room_id, uint64 peer_id, uint64 server_peer_id);
+  virtual void OnCreatedRoom(std::string& room_id);
+  virtual void OnSignedIn(std::string& room_id, uint64 peer_id);
   virtual void OnMessageFromPeer();
   virtual void OnMessageSent();
   virtual void OnDisconnected();
@@ -148,7 +150,7 @@ class Conductor
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
       peer_connection_factory_;
-  PeerConnectionClient* client_;
+  SignalServerConnection* signal_client_;
   std::deque<std::string*> pending_messages_;
 
   rtc::scoped_refptr<HotlineControlDataChannel> local_control_datachannel_;

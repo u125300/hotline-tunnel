@@ -17,7 +17,7 @@ class ConductorClient
   : public Conductor {
 public:
 
- ConductorClient(PeerConnectionClient* client,
+ ConductorClient(SignalServerConnection* signal_client,
             UserArguments& arguments);
 
 protected:

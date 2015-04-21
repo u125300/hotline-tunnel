@@ -47,13 +47,13 @@ class DummySetSessionDescriptionObserver
 };
 
 
-Conductor::Conductor(PeerConnectionClient* client,
+Conductor::Conductor(SignalServerConnection* signal_client,
                      UserArguments& arguments)
   : peer_id_(0),
     server_peer_id_(0),
     id_(0),
     loopback_(false),
-    client_(client),
+    signal_client_(signal_client),
     server_mode_(arguments.server_mode),
     local_address_(arguments.local_address),
     remote_address_(arguments.remote_address),
@@ -61,7 +61,7 @@ Conductor::Conductor(PeerConnectionClient* client,
     room_id_(arguments.room_id),
     local_datachannel_serial_(1) {
 
-  client_->RegisterObserver(this);
+  signal_client_->RegisterObserver(this);
 
   if (server_mode_){
     socket_client_.RegisterObserver(this);
@@ -378,7 +378,7 @@ void Conductor::OnSocketClosed(SocketConnection* socket){
 //:
 /*
 //
-// PeerConnectionClientObserver implementation.
+// SignalServerConnectionObserver implementation.
 //
 
 void Conductor::OnSignedIn() {
@@ -513,15 +513,6 @@ void Conductor::OnServerConnectionFailure() {
 
 */
 
-void Conductor::OnSignedInAsServer(std::string& room_id, uint64 peer_id) {
-
-  ASSERT(server_mode_);
-
-  room_id_ = room_id;
-  id_ = peer_id;
-  printf("Your room id is %s\n", room_id.c_str());
-
-}
 
 void Conductor::OnSignedInAsClient(std::string& room_id, uint64 peer_id, uint64 server_peer_id) {
 
@@ -531,6 +522,26 @@ void Conductor::OnSignedInAsClient(std::string& room_id, uint64 peer_id, uint64 
   id_ = peer_id;
 
 }
+
+void Conductor::OnCreatedRoom(std::string& room_id) {
+  ASSERT(server_mode_);
+
+  room_id_ = room_id;
+  printf("Your room id is %s\n", room_id.c_str());
+} 
+
+void Conductor::OnSignedIn(std::string& room_id, uint64 peer_id) {
+  if (server_mode_) {
+    ASSERT(room_id_==room_id);
+    id_ = peer_id;
+  }
+  else {
+    room_id_ = room_id;
+    id_ = peer_id;
+  }
+}
+
+
 
 void Conductor::OnMessageFromPeer() {
 
@@ -792,7 +803,6 @@ void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc) {
   jmessage[kSessionDescriptionSdpName] = sdp;
   jmessage["room_id"] = room_id_;
   jmessage["peer_id"] = std::to_string(peer_id_);
-  client_->Send(PeerConnectionClient::SendMessageToPeer, jmessage);
 //:  SendMessage(writer.write(jmessage));
 }
 

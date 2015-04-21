@@ -99,7 +99,7 @@ set(HEADERS
   "src/websocket.h"
   "src/data_channel.h"
   "src/flagdefs.h"
-  "src/peerconnection_client.h"
+  "src/signalserver_connection.h"
   )
 
 set(SOURCES
@@ -113,7 +113,7 @@ set(SOURCES
   "src/socket_client.cc"
   "src/websocket.cc"
   "src/data_channel.cc"
-  "src/peerconnection_client.cc"
+  "src/signalserver_connection.cc"
   )
 
 # ============================================================================
