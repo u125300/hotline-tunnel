@@ -1,5 +1,5 @@
-#ifndef TALK_EXAMPLES_PEERCONNECTION_CLIENT_CONDUCTOR_H_
-#define TALK_EXAMPLES_PEERCONNECTION_CLIENT_CONDUCTOR_H_
+#ifndef HOTLINE_TUNNEL_CONDUCTOR_H_
+#define HOTLINE_TUNNEL_CONDUCTOR_H_
 #pragma once
 
 #include "htn_config.h"
@@ -55,6 +55,7 @@ class Conductor
 
   Conductor(PeerConnectionClient* client,
             UserArguments& arguments);
+  ~Conductor();
 
   bool connection_active() const;
 
@@ -80,7 +81,6 @@ class Conductor
      cricket::ProtocolType protocol_;
   };
 
-  ~Conductor();
   bool InitializePeerConnection();
   bool ReinitializePeerConnectionForLoopback();
   bool CreatePeerConnection(bool dtls);
@@ -127,7 +127,8 @@ class Conductor
   //
   // PeerConnectionClientObserver implementation.
   //
-  virtual void OnSignedIn(std::string& room_id);
+  virtual void OnSignedInAsServer(std::string& room_id, uint64 peer_id);
+  virtual void OnSignedInAsClient(std::string& room_id, uint64 peer_id, uint64 server_peer_id);
   virtual void OnMessageFromPeer();
   virtual void OnMessageSent();
   virtual void OnDisconnected();
@@ -142,6 +143,7 @@ class Conductor
   void SendMessage(const std::string& json_object);
 
   uint64 peer_id_;
+  uint64 server_peer_id_;
   bool loopback_;
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
@@ -175,4 +177,4 @@ class Conductor
 
 
 
-#endif  // TALK_EXAMPLES_PEERCONNECTION_CLIENT_CONDUCTOR_H_
+#endif  // HOTLINE_TUNNEL_CONDUCTOR_H_

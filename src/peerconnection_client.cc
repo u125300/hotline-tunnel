@@ -14,7 +14,6 @@ namespace hotline {
 
 PeerConnectionClient::PeerConnectionClient(rtc::Thread* signal_thread)
   : callback_(NULL)
-  , peer_id_(0)
   , signal_thread_(signal_thread)
 {
 }
@@ -154,6 +153,7 @@ void PeerConnectionClient::SignedInAsServer(Json::Value& data) {
   bool successful;
   std::string room_id;
   std::string peer_id;
+  uint64 int64_peer_id;
 
   if(!GetBoolFromJsonObject(data, "successful", &successful)
       || !GetStringFromJsonObject(data, "room_id", &room_id)
@@ -171,14 +171,15 @@ void PeerConnectionClient::SignedInAsServer(Json::Value& data) {
   }
 
   room_id_ = room_id;
-  peer_id_ = strtoull(peer_id.c_str(), NULL, 10);
-  callback_->OnSignedIn(room_id);
+  int64_peer_id = strtoull(peer_id.c_str(), NULL, 10);
+  callback_->OnSignedInAsServer(room_id, int64_peer_id);
 }
 
 void PeerConnectionClient::SignedInAsClient(Json::Value& data) {
   bool successful;
   std::string room_id;
   std::string peer_id;
+  uint64 int64_peer_id;
 
   if(!GetBoolFromJsonObject(data, "successful", &successful)
       || !GetStringFromJsonObject(data, "room_id", &room_id)
@@ -199,8 +200,7 @@ void PeerConnectionClient::SignedInAsClient(Json::Value& data) {
   }
 
   ASSERT(room_id == room_id_);
-  peer_id_ = strtoull(peer_id.c_str(), NULL, 10);
-  callback_->OnSignedIn(room_id_);
+  int64_peer_id = strtoull(peer_id.c_str(), NULL, 10);
 }
 
 

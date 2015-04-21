@@ -15,7 +15,8 @@ namespace hotline {
 
 struct PeerConnectionClientObserver {
 
-  virtual void OnSignedIn(std::string& room_id) = 0;
+  virtual void OnSignedInAsServer(std::string& room_id, uint64 peer_id) = 0;
+  virtual void OnSignedInAsClient(std::string& room_id, uint64 peer_id, uint64 server_peer_id) = 0;
   virtual void OnDisconnected() = 0;
   virtual void OnMessageFromPeer() = 0;
   virtual void OnMessageSent() = 0;
@@ -74,7 +75,6 @@ private:
   //
 
   std::string room_id_;
-  uint64 peer_id_;
   rtc::scoped_ptr<WebSocket> ws_;
   bool server_mode_;
   std::string password_;

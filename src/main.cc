@@ -9,6 +9,8 @@
 #include "webrtc/base/logging.h"
 
 #include "conductor.h"
+#include "conductor_client.h"
+#include "conductor_server.h"
 #include "flagdefs.h"
 #include "peerconnection_client.h"
 
@@ -72,20 +74,21 @@ int main(int argc, char** argv) {
 
   rtc::InitializeSSL();
   hotline::PeerConnectionClient client(rtc::ThreadManager::Instance()->CurrentThread());
+  rtc::scoped_ptr<hotline::Conductor> conductor;
 
   if (arguments.server_mode) {
     if (!client.InitServerMode(arguments.password)) {
       return false;
     }
+    conductor.reset(new rtc::RefCountedObject<hotline::ConductorServer>(&client, arguments));
   }
   else {
     if (!client.InitClientMode(arguments.password, arguments.room_id)) {
       return false;
     }
+    conductor.reset(new rtc::RefCountedObject<hotline::ConductorClient>(&client, arguments));
   }
 
-  rtc::scoped_refptr<hotline::Conductor> conductor(
-    new rtc::RefCountedObject<hotline::Conductor>(&client, arguments));
 
   //
   // Connect to signal server

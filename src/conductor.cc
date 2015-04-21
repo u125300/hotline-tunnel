@@ -50,6 +50,8 @@ class DummySetSessionDescriptionObserver
 Conductor::Conductor(PeerConnectionClient* client,
                      UserArguments& arguments)
   : peer_id_(0),
+    server_peer_id_(0),
+    id_(0),
     loopback_(false),
     client_(client),
     server_mode_(arguments.server_mode),
@@ -58,8 +60,6 @@ Conductor::Conductor(PeerConnectionClient* client,
     protocol_(arguments.protocol),
     room_id_(arguments.room_id),
     local_datachannel_serial_(1) {
-
-  id_ = rtc::CreateRandomId64();
 
   client_->RegisterObserver(this);
 
@@ -170,6 +170,7 @@ void Conductor::DeletePeerConnection() {
   //:main_wnd_->StopRemoteRenderer();
   peer_connection_factory_ = NULL;
   peer_id_ = 0;
+  server_peer_id_ = 0;
   loopback_ = false;
 }
 
@@ -512,25 +513,22 @@ void Conductor::OnServerConnectionFailure() {
 
 */
 
-void Conductor::OnSignedIn(std::string& room_id) {
+void Conductor::OnSignedInAsServer(std::string& room_id, uint64 peer_id) {
 
-  //
-  // Server mode
-  //
+  ASSERT(server_mode_);
 
-  if (server_mode_) {
-    room_id_ = room_id;
-    printf("Your room id is %s\n", room_id.c_str());
-  }
+  room_id_ = room_id;
+  id_ = peer_id;
+  printf("Your room id is %s\n", room_id.c_str());
 
-  //
-  // Client mode
-  //
+}
 
-  else {
-    ASSERT(room_id==room_id_);
-  }
+void Conductor::OnSignedInAsClient(std::string& room_id, uint64 peer_id, uint64 server_peer_id) {
 
+  ASSERT(!server_mode_);
+  ASSERT(room_id==room_id_);
+
+  id_ = peer_id;
 
 }
 
@@ -591,7 +589,6 @@ void Conductor::ConnectToPeer(int peer_id) {
 */
 
 void Conductor::ConnectToPeer(uint64 peer_id) {
-#if 0
   ASSERT( !server_mode_ );
 
   if (peer_connection_.get()) {
@@ -604,7 +601,6 @@ void Conductor::ConnectToPeer(uint64 peer_id) {
   } else {
     printf("Error: Failed to initialize PeerConnection\n");
   }
-#endif
 }
 
 //
