@@ -111,6 +111,9 @@ void SignalServerConnection::onMessage(WebSocket* ws, const WebSocket::Data& dat
   case MsgSignIn:
     OnSignedIn(payload_data);
     break;
+  case MsgPeerConnected:
+    OnPeerConnected(payload_data);
+    break;
   default:
     break;
   }
@@ -176,6 +179,21 @@ void SignalServerConnection::OnSignedIn(Json::Value& data) {
 }
 
 
+void SignalServerConnection::OnPeerConnected(Json::Value& data) {
+  std::string peer_id;
+  uint64 npeer_id;
+
+  if(!GetStringFromJsonObject(data, "peer_id", &peer_id)) {
+    LOG(LS_WARNING) << "Invalid message format";
+    printf("Error: Server response error\n");
+    Close();
+    return;
+  }
+
+  npeer_id = strtoull(peer_id.c_str(), NULL, 10);
+  
+  callback_->OnPeerConnected(npeer_id);
+}
 
 void SignalServerConnection::Close() {
   ASSERT(signal_thread_ != NULL);

@@ -71,7 +71,11 @@ void SocketConnection::PacketQueue::Swap(PacketQueue* other) {
 ///////////////////////////////////////////////////////////////////////////////
 
 SocketConnection::SocketConnection(SocketBase* server)
-  : server_(server), stream_(NULL), closing_(false), is_ready_(false), recv_len_(0) {
+  : server_(server)
+  , stream_(NULL)
+  , closing_(false)
+  , is_ready_(false)
+  , recv_len_(0) {
 }
 
 
@@ -301,7 +305,8 @@ void SocketConnection::SendQueuedDataMessages() {
 // SocketBase
 ///////////////////////////////////////////////////////////////////////////////
 
-SocketBase::SocketBase() : callback_(NULL) {
+SocketBase::SocketBase() 
+    : callback_(NULL) {
 }
 
 SocketBase::~SocketBase() {
@@ -327,6 +332,8 @@ SocketConnection* SocketBase::HandleConnection(rtc::StreamInterface* stream) {
 
   SocketConnection* connection = new SocketConnection(this);
   if (connection==NULL) return NULL;
+
+  connection->SetPeerId(peer_id());
   connections_.push_back(connection);
 
   // Notify to conductor
