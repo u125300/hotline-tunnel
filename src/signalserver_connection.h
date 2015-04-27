@@ -45,6 +45,28 @@ public:
     MsgSendMessageToPeer = 4
   };
 
+  enum ThreadMsgId{
+    MsgServer,
+    MsgClose
+  };
+
+  struct ServerMessageData : public rtc::MessageData {
+  public:
+    ServerMessageData(MsgID msgid, Json::Value& data) {
+      msgid_ = msgid;
+      data_ = data;
+    }
+
+    MsgID msgid() {return msgid_;}
+    Json::Value& data() {return data_;}
+
+  private:
+    MsgID msgid_;
+    Json::Value data_;
+  };
+
+
+
   SignalServerConnection(rtc::Thread* signal_thread);
   virtual ~SignalServerConnection();
 

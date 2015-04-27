@@ -47,21 +47,12 @@ class DummySetSessionDescriptionObserver
 };
 
 
-Conductor::Conductor(SignalServerConnection* signal_client,
-                     UserArguments& arguments)
-  : 
-    id_(0),
+Conductor::Conductor()
+  : id_(0),
+    peer_id_(0),
     loopback_(false),
-    signal_client_(signal_client),
-    server_mode_(arguments.server_mode),
-    local_address_(arguments.local_address),
-    remote_address_(arguments.remote_address),
-    protocol_(arguments.protocol),
-    room_id_(arguments.room_id),
-    password_(arguments.password),
+    signal_client_(NULL),
     local_datachannel_serial_(1) {
-
-  signal_client_->RegisterObserver(this);
 
   if (server_mode_){
     socket_client_.RegisterObserver(this);
@@ -75,6 +66,25 @@ Conductor::Conductor(SignalServerConnection* signal_client,
 
 Conductor::~Conductor() {
   ASSERT(peer_connection_.get() == NULL);
+}
+
+
+void Conductor::Init(bool server_mode,
+                    rtc::SocketAddress local_address,
+                    rtc::SocketAddress remote_address,
+                    cricket::ProtocolType protocol,
+                    std::string room_id,
+                    uint64 id,
+                    SignalServerConnection* signal_client
+                ) {
+  server_mode_ = server_mode;
+  local_address_ = local_address;
+  remote_address_ = remote_address;
+  protocol_ = protocol;
+  room_id_ = room_id;
+  id_ = id;
+  signal_client_ = signal_client;
+
 }
 
 bool Conductor::connection_active() const {
@@ -97,42 +107,41 @@ uint64 Conductor::id_from_string(std::string id_string) {
 
 void Conductor::Close() {
   //:client_->SignOut();
-  //:DeletePeerConnection();
+  DeletePeerConnection();
 }
 
-bool Conductor::InitializePeerConnection(uint64 peer_id) {
-  //:ASSERT(peer_connection_factory_.get() == NULL);
-  //:ASSERT(peer_connection_.get() == NULL);
+bool Conductor::InitializePeerConnection() {
+  ASSERT(peer_connection_factory_.get() == NULL);
+  ASSERT(peer_connection_.get() == NULL);
 
-  if (peer_connection_factory_.get() == NULL) {
-    peer_connection_factory_  = webrtc::CreatePeerConnectionFactory();
-  }
+  peer_connection_factory_  = webrtc::CreatePeerConnectionFactory();
 
   if (!peer_connection_factory_.get()) {
     printf("Error: Failed to initialize PeerConnectionFactory\n");
-    DeletePeerConnection(peer_id);
+    DeletePeerConnection();
     return false;
   }
 
-  if (!CreatePeerConnection(peer_id, DTLS_ON)) {
+  if (!CreatePeerConnection(DTLS_ON)) {
     printf("Error: CreatePeerConnection failed\n");
-    DeletePeerConnection(peer_id);
+    DeletePeerConnection();
   }
   
   std::string channel_name = id_string() + std::string("|") +
                               kControlDataLabel;
-  AddDataChannels(peer_id, std::string(channel_name), true);
+  AddDataChannels(std::string(channel_name), true);
 
   //:main_wnd_->SwitchToStreamingUI();
-  return peers_.find(peer_id) != peers_.end();
+
+  return peer_connection_.get() != NULL;
 }
 
-bool Conductor::ReinitializePeerConnectionForLoopback(uint64 peer_id) {
+bool Conductor::ReinitializePeerConnectionForLoopback() {
   loopback_ = true;
   rtc::scoped_refptr<webrtc::StreamCollectionInterface> streams(
       peer_connection_->local_streams());
   peer_connection_ = NULL;
-  if (CreatePeerConnection(peer_id, DTLS_OFF)) {
+  if (CreatePeerConnection(DTLS_OFF)) {
     for (size_t i = 0; i < streams->count(); ++i)
       peer_connection_->AddStream(streams->at(i));
     peer_connection_->CreateOffer(this, NULL);
@@ -140,9 +149,9 @@ bool Conductor::ReinitializePeerConnectionForLoopback(uint64 peer_id) {
   return peer_connection_.get() != NULL;
 }
 
-bool Conductor::CreatePeerConnection(uint64 peer_id, bool dtls) {
+bool Conductor::CreatePeerConnection(bool dtls) {
   ASSERT(peer_connection_factory_.get() != NULL);
-//:  ASSERT(peer_connection_.get() == NULL);
+  ASSERT(peer_connection_.get() == NULL);
 
   webrtc::PeerConnectionInterface::IceServers servers;
   webrtc::PeerConnectionInterface::IceServer server;
@@ -155,25 +164,22 @@ bool Conductor::CreatePeerConnection(uint64 peer_id, bool dtls) {
                             "true");
   }
 
-  rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection(
-        peer_connection_factory_->CreatePeerConnection(servers,
-                                                        &constraints,
-                                                        NULL,
-                                                        NULL,
-                                                    this));
-
-  if (peer_connection==NULL) return false;
-  peers_[peer_id]->peer_connection = peer_connection;
-  
-  return true;
+  peer_connection_ =
+      peer_connection_factory_->CreatePeerConnection(servers,
+                                                     &constraints,
+                                                     NULL,
+                                                     NULL,
+                                                     this);
+  return peer_connection_.get() != NULL;
 }
 
-void Conductor::DeletePeerConnection(uint64 peer_id) {
+void Conductor::DeletePeerConnection() {
   peer_connection_ = NULL;
   datachannels_.clear();
   //:main_wnd_->StopLocalRenderer();
   //:main_wnd_->StopRemoteRenderer();
   peer_connection_factory_ = NULL;
+  peer_id_ = 0;
   loopback_ = false;
 }
 
@@ -250,7 +256,7 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
     return;
   }
   jmessage[kCandidateSdpName] = sdp;
-  SendMessage(writer.write(jmessage));
+  //:SendMessage(writer.write(jmessage));
 }
 
 
@@ -305,6 +311,7 @@ void Conductor::OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> c
     connection->AttachChannel(channel);
     connection->SetReady();
     local_control_datachannel_->ServerSideReady(channel->label());
+
   }
   else {
 
@@ -359,7 +366,7 @@ void Conductor::OnSocketOpen(SocketConnection* socket){
   else{
     std::string channel_name = id_string() + std::string("|") +
                                std::to_string(local_datachannel_serial_++);
-    if (!AddDataChannels(socket->peer_id(), channel_name, false)) return;
+    if (!AddDataChannels(channel_name, false)) return;
     rtc::scoped_refptr<HotlineDataChannel> channel = datachannels_[channel_name];
     if (channel==NULL) return;
 
@@ -515,6 +522,9 @@ void Conductor::OnServerConnectionFailure() {
 
 */
 
+
+
+/*
 void Conductor::OnConnected() {
   if (server_mode_) {
     signal_client_->CreateRoom(password_);
@@ -534,6 +544,7 @@ void Conductor::OnCreatedRoom(std::string& room_id) {
 } 
 
 void Conductor::OnSignedIn(std::string& room_id, uint64 peer_id) {
+
   if (server_mode_) {
     ASSERT(room_id_==room_id);
   }
@@ -542,9 +553,6 @@ void Conductor::OnSignedIn(std::string& room_id, uint64 peer_id) {
   id_ = peer_id;
 }
 
-void Conductor::OnPeerConnected(uint64 peer_id) {
-  ConnectToPeer(peer_id);
-}
 
 
 void Conductor::OnMessageFromPeer() {
@@ -565,7 +573,7 @@ void Conductor::OnServerConnectionFailure() {
     rtc::ThreadManager::Instance()->CurrentThread()->Stop();
   }
 }
-
+*/
 
 //
 // MainWndCallback implementation.
@@ -604,22 +612,16 @@ void Conductor::ConnectToPeer(int peer_id) {
 */
 
 void Conductor::ConnectToPeer(uint64 peer_id) {
-  if (peers_.find(peer_id) != peers_.end()) {
-    printf("Error: Already connected.\n");
+  ASSERT( !server_mode_ );
+
+  if (peer_connection_.get()) {
+    printf("Error: We only support connecting to one peer at a time\n");
     return;
   }
 
-  rtc::scoped_ptr<SinglePeerConnection> peer(new SinglePeerConnection);
-  if (peer == NULL) {
-    printf("Error: Can not create connection.\n");
-    return;
-  }
-
-  typedef std::pair<uint64, rtc::scoped_ptr<SinglePeerConnection>> PeerPair;
-  peers_.insert(PeerPair(peer_id, peer.Pass()));
-
-  if (InitializePeerConnection(peer_id)) {
-    peers_[peer_id]->peer_connection->CreateOffer(this, NULL);
+  if (InitializePeerConnection()) {
+    peer_id_ = peer_id;
+    peer_connection_->CreateOffer(this, NULL);
   } else {
     printf("Error: Failed to initialize PeerConnection\n");
   }
@@ -629,7 +631,7 @@ void Conductor::ConnectToPeer(uint64 peer_id) {
 // Add data channels to send
 //
 
-bool Conductor::AddDataChannels(uint64 peer_id, std::string& channel_name, bool controlchannel) {
+bool Conductor::AddDataChannels(std::string& channel_name, bool controlchannel) {
 
   typedef std::pair<std::string,
     rtc::scoped_refptr<HotlineDataChannel> >
@@ -639,34 +641,28 @@ bool Conductor::AddDataChannels(uint64 peer_id, std::string& channel_name, bool 
   config.reliable = true;
   config.ordered = true;
 
-  SinglePeerConnection* peer = peers_[peer_id].get();
-  if (peer==NULL) {
-    LOG(LS_ERROR) << "AddDataChannels(): Invalid peer_id";
-    return false;
-  }
-
   if (controlchannel) {
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
-      peer->peer_connection->CreateDataChannel(channel_name, &config);
+      peer_connection_->CreateDataChannel(channel_name, &config);
 
     if (data_channel.get() == NULL) {
       LOG(LS_ERROR) << "CreateDataChannel(" + channel_name +") to PeerConnection failed";
       return false;
     }
 
-    peer->local_control_datachannel = new rtc::RefCountedObject<HotlineControlDataChannel>(data_channel, true);
-    peer->local_control_datachannel->RegisterObserver(this);
+    local_control_datachannel_ = new rtc::RefCountedObject<HotlineControlDataChannel>(data_channel, true);
+    local_control_datachannel_->RegisterObserver(this);
     return true;
 
   }
   else {
     rtc::scoped_refptr<HotlineDataChannel> data_channel_observer;
-    if (peer->datachannels.find(channel_name) != peer->datachannels.end()) {
+    if (datachannels_.find(channel_name) != datachannels_.end()) {
       return true;  // Already added.
     }
 
     rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
-      peer->peer_connection->CreateDataChannel(channel_name, &config);
+      peer_connection_->CreateDataChannel(channel_name, &config);
 
     if (data_channel.get() == NULL) {
       LOG(LS_ERROR) << "CreateDataChannel to PeerConnection failed";
@@ -678,7 +674,7 @@ bool Conductor::AddDataChannels(uint64 peer_id, std::string& channel_name, bool 
 
     ASSERT(data_channel_observer.get()!=NULL);
 
-    peer->datachannels.insert(DataChannelObserverPair(data_channel->label(),
+    datachannels_.insert(DataChannelObserverPair(data_channel->label(),
                                data_channel_observer));
 
     data_channel_observer->RegisterObserver(this);
@@ -818,6 +814,12 @@ void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc) {
   Json::Value jmessage;
   jmessage[kSessionDescriptionTypeName] = desc->type();
   jmessage[kSessionDescriptionSdpName] = sdp;
+  jmessage["room_id"] = room_id_;
+  jmessage["peer_id"] = std::to_string(peer_id_);
+
+//  signal_client_->Send();
+
+
 //:  SendMessage(writer.write(jmessage));
 }
 
@@ -825,10 +827,11 @@ void Conductor::OnFailure(const std::string& error) {
     LOG(LERROR) << error;
 }
 
-
+/*
 void Conductor::SendMessage(const std::string& json_object) {
   std::string* msg = new std::string(json_object);
   //:main_wnd_->QueueUIThreadCallback(SEND_MESSAGE_TO_PEER, msg);
 }
+*/
 
 } // namespace hotline

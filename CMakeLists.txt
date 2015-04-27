@@ -90,8 +90,7 @@ configure_file(
 set(HEADERS
   "${PROJECT_BINARY_DIR}/htn_config.h"
   "src/conductor.h"
-  "src/conductor_client.h"
-  "src/conductor_server.h"
+  "src/conductors.h"
   "src/defaults.h"
   "src/socket.h"
   "src/socket_server.h"
@@ -105,8 +104,7 @@ set(HEADERS
 set(SOURCES
   "src/main.cc"
   "src/conductor.cc"
-  "src/conductor_client.cc"
-  "src/conductor_server.cc"
+  "src/conductors.cc"
   "src/defaults.cc"
   "src/socket.cc"
   "src/socket_server.cc"

@@ -8,9 +8,7 @@
 #include "webrtc/base/win32socketserver.h"
 #include "webrtc/base/logging.h"
 
-#include "conductor.h"
-#include "conductor_client.h"
-#include "conductor_server.h"
+#include "conductors.h"
 #include "flagdefs.h"
 #include "signalserver_connection.h"
 
@@ -74,15 +72,7 @@ int main(int argc, char** argv) {
 
   rtc::InitializeSSL();
   hotline::SignalServerConnection signal_client(rtc::ThreadManager::Instance()->CurrentThread());
-  rtc::scoped_ptr<hotline::Conductor> conductor;
-
-  if (arguments.server_mode) {
-    conductor.reset(new rtc::RefCountedObject<hotline::ConductorServer>(&signal_client, arguments));
-  }
-  else {
-    conductor.reset(new rtc::RefCountedObject<hotline::ConductorClient>(&signal_client, arguments));
-  }
-
+  rtc::scoped_ptr<hotline::Conductors> conductors(new hotline::Conductors(&signal_client, arguments));
 
   //
   // Connect to signal server

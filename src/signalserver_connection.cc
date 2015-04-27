@@ -78,8 +78,24 @@ void SignalServerConnection::InitSocketSignals() {
 
 void SignalServerConnection::OnMessage(rtc::Message* msg) {
 
-  // Default message id
-  if (msg->message_id == 0) {
+  if (msg->message_id == ThreadMsgId::MsgServer) {
+    rtc::scoped_ptr<ServerMessageData> server_msg(static_cast<ServerMessageData*>(msg->pdata));
+    
+    switch (server_msg->msgid()) {
+    case MsgCreateRoom:
+      OnCreatedRoom(server_msg->data());
+      break;
+    case MsgSignIn:
+      OnSignedIn(server_msg->data());
+     break;
+    case MsgPeerConnected:
+      OnPeerConnected(server_msg->data());
+      break;
+    default:
+      break;
+    }
+  }
+  else if (msg->message_id == ThreadMsgId::MsgClose) {
     ASSERT(callback_ != NULL);
     callback_->OnServerConnectionFailure();
   }
@@ -98,26 +114,15 @@ void SignalServerConnection::onMessage(WebSocket* ws, const WebSocket::Data& dat
     return;
   }
 
+  ServerMessageData* msgdata = NULL;
   MsgID msgid;
   Json::Value payload_data;
 
   if(!GetIntFromJsonObject(jmessage, "msgid", (int*)&msgid)) return;
   if(!GetValueFromJsonObject(jmessage, "data", &payload_data)) return;
 
-  switch (msgid) {
-  case MsgCreateRoom:
-    OnCreatedRoom(payload_data);
-    break;
-  case MsgSignIn:
-    OnSignedIn(payload_data);
-    break;
-  case MsgPeerConnected:
-    OnPeerConnected(payload_data);
-    break;
-  default:
-    break;
-  }
-
+  msgdata = new ServerMessageData(msgid, payload_data);
+  signal_thread_->Post(this, ThreadMsgId::MsgServer, msgdata);
 }
 
 void SignalServerConnection::onClose(WebSocket* ws) {
