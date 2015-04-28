@@ -47,21 +47,11 @@ class Conductor
                         );
 
   bool connection_active() const;
-
-  /*
-  uint64 id() {return id_;}
-  std::string id_string() const;
-  static uint64 Conductor::id_from_string(std::string id_string);
-  */
-
   void ConnectToPeer();
   virtual void OnReceivedOffer(Json::Value& data);
-
-
   virtual void Close();
 
  protected:
-   
    class ChannelDescription{
    public:
      ChannelDescription() {}
@@ -78,15 +68,12 @@ class Conductor
      cricket::ProtocolType protocol_;
   };
   
-
   bool InitializePeerConnection();
   bool ReinitializePeerConnectionForLoopback();
   bool CreatePeerConnection(bool dtls);
   void DeletePeerConnection();
-  void EnsureStreamingUI();
   bool AddControlDataChannel();
   bool AddPacketDataChannel(std::string* channel_name);
-
 
   //
   // PeerConnectionObserver implementation.
@@ -110,7 +97,6 @@ class Conductor
   virtual void OnCreateChannel(rtc::SocketAddress& remote_address, cricket::ProtocolType protocol);
   virtual void OnChannelCreated();
   virtual void OnServerSideReady(std::string& channel_name);
-
 
   //
   // SocketObserver implementation.
@@ -152,15 +138,9 @@ class Conductor
   rtc::SocketAddress local_address_;
   rtc::SocketAddress remote_address_;
   std::string room_id_;
-//:  std::string password_;
   cricket::ProtocolType protocol_;
 
-//:  uint64 id_;
-  std::string server_;
-
   ChannelDescription channel_;
-//:  typedef std::map<uint64, rtc::scoped_ptr<ChannelDescription>> ChannelMap;
-//:  ChannelMap channel_descs_;
 };
 
 } // namespace hotline

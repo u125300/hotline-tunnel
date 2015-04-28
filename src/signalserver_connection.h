@@ -43,8 +43,7 @@ public:
     MsgSignIn            = 2,
     MsgPeerConnected     = 3,
     MsgSendOffer         = 4,
-    MsgReceivedOffer     = 5,
-    MsgSendMessageToPeer = 6
+    MsgReceivedOffer     = 5
   };
 
   enum ThreadMsgId{

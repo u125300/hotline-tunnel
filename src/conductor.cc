@@ -56,14 +56,11 @@ Conductor::Conductor()
 
   socket_client_.RegisterObserver(this);
   socket_listen_server_.RegisterObserver(this);
-  
-  //:main_wnd->RegisterObserver(this);
 }
 
 Conductor::~Conductor() {
   ASSERT(peer_connection_.get() == NULL);
 }
-
 
 void Conductor::Init(bool server_mode,
                     rtc::SocketAddress local_address,
@@ -89,22 +86,6 @@ bool Conductor::connection_active() const {
   return peer_connection_.get() != NULL;
 }
 
-/*
-std::string Conductor::id_string() const {
-  std::stringstream stream;
-  stream << std::hex << id_;
-  return stream.str();
-}
-
-uint64 Conductor::id_from_string(std::string id_string) {
-  uint64 id = 0;
-  std::stringstream stream;
-  stream << std::hex << id_string;
-  stream >> id;
-  return id;
-}
-*/
-
 void Conductor::Close() {
   //:client_->SignOut();
   DeletePeerConnection();
@@ -128,8 +109,6 @@ bool Conductor::InitializePeerConnection() {
   }
   
   AddControlDataChannel();
-
-  //:main_wnd_->SwitchToStreamingUI();
 
   return peer_connection_.get() != NULL;
 }
@@ -174,20 +153,11 @@ bool Conductor::CreatePeerConnection(bool dtls) {
 void Conductor::DeletePeerConnection() {
   peer_connection_ = NULL;
   datachannels_.clear();
-  //:main_wnd_->StopLocalRenderer();
-  //:main_wnd_->StopRemoteRenderer();
   peer_connection_factory_ = NULL;
   remote_peer_id_ = 0;
   loopback_ = false;
 }
 
-void Conductor::EnsureStreamingUI() {
-  ASSERT(peer_connection_.get() != NULL);
-  //:if (main_wnd_->IsWindow()) {
-  //:  if (main_wnd_->current_ui() != MainWindow::STREAMING)
-  //:    main_wnd_->SwitchToStreamingUI();
-  //:}
-}
 
 //
 // PeerConnectionObserver implementation.
@@ -312,10 +282,7 @@ void Conductor::OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> c
   else {
 
   }
-
-
 }
-
 
 void Conductor::OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel) {
   SocketConnection* socket = channel->DetachSocket();
@@ -323,7 +290,6 @@ void Conductor::OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel>
   datachannels_.erase(channel->label());
   if (socket) socket->Close();
 }
-
 
 void Conductor::OnCreateChannel(rtc::SocketAddress& remote_address, cricket::ProtocolType protocol){
   ASSERT(server_mode_);
@@ -333,7 +299,6 @@ void Conductor::OnCreateChannel(rtc::SocketAddress& remote_address, cricket::Pro
 
 void Conductor::OnChannelCreated() {
   ASSERT(!server_mode_);
-//:  ASSERT(id==id_);
   socket_listen_server_.Listen(local_address_, protocol_);
 }
 
@@ -896,12 +861,5 @@ void Conductor::OnReceivedOffer(Json::Value& data) {
   }
 }
 
-
-/*
-void Conductor::SendMessage(const std::string& json_object) {
-  std::string* msg = new std::string(json_object);
-  //:main_wnd_->QueueUIThreadCallback(SEND_MESSAGE_TO_PEER, msg);
-}
-*/
 
 } // namespace hotline
