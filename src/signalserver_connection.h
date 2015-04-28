@@ -22,7 +22,7 @@ struct SignalServerConnectionObserver {
   virtual void OnCreatedRoom(std::string& room_id) = 0;
   virtual void OnSignedIn(std::string& room_id, uint64 peer_id) = 0;
   virtual void OnPeerConnected(uint64 peer_id) = 0;
-
+  virtual void OnReceivedOffer(Json::Value& data) = 0;
   virtual void OnMessageFromPeer() = 0;
   virtual void OnMessageSent() = 0;
   virtual void OnServerConnectionFailure() = 0;
@@ -42,7 +42,9 @@ public:
     MsgCreateRoom        = 1,
     MsgSignIn            = 2,
     MsgPeerConnected     = 3,
-    MsgSendMessageToPeer = 4
+    MsgSendOffer         = 4,
+    MsgReceivedOffer     = 5,
+    MsgSendMessageToPeer = 6
   };
 
   enum ThreadMsgId{
@@ -92,6 +94,7 @@ protected:
   virtual void OnCreatedRoom(Json::Value& data);
   virtual void OnSignedIn(Json::Value& data);
   virtual void OnPeerConnected(Json::Value& data);
+  virtual void OnReceivedOffer(Json::Value& data);
 
 
 private:

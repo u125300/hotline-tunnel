@@ -57,6 +57,7 @@ class Conductors
   virtual void OnCreatedRoom(std::string& room_id);
   virtual void OnSignedIn(std::string& room_id, uint64 peer_id);
   virtual void OnPeerConnected(uint64 peer_id);
+  virtual void OnReceivedOffer(Json::Value& data);
   virtual void OnMessageFromPeer();
   virtual void OnMessageSent();
   virtual void OnServerConnectionFailure();
@@ -64,7 +65,7 @@ class Conductors
   // Send a message to the remote peer.
   void SendMessage(const std::string& json_object);
 
-  uint64 peer_id_;
+  //:uint64 peer_id_;
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
       peer_connection_factory_;
   SignalServerConnection* signal_client_;
@@ -81,7 +82,8 @@ class Conductors
   std::string server_;
 
   typedef std::map<uint64, rtc::scoped_refptr<Conductor>> PeerMap;
-  PeerMap peers_;
+  PeerMap peers_offer_;
+  PeerMap peers_answer_;
 };
 
 } // namespace hotline

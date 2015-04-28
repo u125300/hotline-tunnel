@@ -41,17 +41,21 @@ class Conductor
                         rtc::SocketAddress remote_address,
                         cricket::ProtocolType protocol,
                         std::string room_id,
-                        uint64 id,
+                        uint64 local_peer_id,
+                        uint64 remote_peer_id,
                         SignalServerConnection* signal_client
                         );
 
   bool connection_active() const;
 
+  
   uint64 id() {return id_;}
   std::string id_string() const;
   static uint64 Conductor::id_from_string(std::string id_string);
+  
 
-  void ConnectToPeer(uint64 peer_id);
+  void ConnectToPeer();
+  virtual void OnReceivedOffer(Json::Value& data);
 
 
   virtual void Close();
@@ -113,15 +117,19 @@ class Conductor
   virtual void OnSocketClosed(SocketConnection* socket);
 
 
+  //
   // CreateSessionDescriptionObserver implementation.
+  //
   virtual void OnSuccess(webrtc::SessionDescriptionInterface* desc);
   virtual void OnFailure(const std::string& error);
+
 
 
   // Send a message to the remote peer.
   //:void SendMessage(const std::string& json_object);
 
-  uint64 peer_id_;
+  uint64 local_peer_id_;
+  uint64 remote_peer_id_;
   bool loopback_;
   rtc::scoped_refptr<webrtc::PeerConnectionInterface> peer_connection_;
   rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>

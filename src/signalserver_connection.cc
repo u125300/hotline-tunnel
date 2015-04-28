@@ -78,26 +78,34 @@ void SignalServerConnection::InitSocketSignals() {
 
 void SignalServerConnection::OnMessage(rtc::Message* msg) {
 
-  if (msg->message_id == ThreadMsgId::MsgServer) {
-    rtc::scoped_ptr<ServerMessageData> server_msg(static_cast<ServerMessageData*>(msg->pdata));
+  try {
+    if (msg->message_id == ThreadMsgId::MsgServer) {
+      rtc::scoped_ptr<ServerMessageData> server_msg(static_cast<ServerMessageData*>(msg->pdata));
     
-    switch (server_msg->msgid()) {
-    case MsgCreateRoom:
-      OnCreatedRoom(server_msg->data());
-      break;
-    case MsgSignIn:
-      OnSignedIn(server_msg->data());
-     break;
-    case MsgPeerConnected:
-      OnPeerConnected(server_msg->data());
-      break;
-    default:
-      break;
+      switch (server_msg->msgid()) {
+      case MsgCreateRoom:
+        OnCreatedRoom(server_msg->data());
+        break;
+      case MsgSignIn:
+        OnSignedIn(server_msg->data());
+       break;
+      case MsgPeerConnected:
+        OnPeerConnected(server_msg->data());
+        break;
+      case MsgReceivedOffer:
+        OnReceivedOffer(server_msg->data());
+        break;
+      default:
+        break;
+      }
+    }
+    else if (msg->message_id == ThreadMsgId::MsgClose) {
+      ASSERT(callback_ != NULL);
+      callback_->OnServerConnectionFailure();
     }
   }
-  else if (msg->message_id == ThreadMsgId::MsgClose) {
-    ASSERT(callback_ != NULL);
-    callback_->OnServerConnectionFailure();
+  catch (...) {
+    LOG(LS_WARNING) << "OnMessage() Exception.";
   }
 }
 
@@ -191,7 +199,6 @@ void SignalServerConnection::OnPeerConnected(Json::Value& data) {
   if(!GetStringFromJsonObject(data, "peer_id", &peer_id)) {
     LOG(LS_WARNING) << "Invalid message format";
     printf("Error: Server response error\n");
-    Close();
     return;
   }
 
@@ -199,6 +206,11 @@ void SignalServerConnection::OnPeerConnected(Json::Value& data) {
   
   callback_->OnPeerConnected(npeer_id);
 }
+
+void SignalServerConnection::OnReceivedOffer(Json::Value& data) {
+  callback_->OnReceivedOffer(data);
+}
+
 
 void SignalServerConnection::Close() {
   ASSERT(signal_thread_ != NULL);

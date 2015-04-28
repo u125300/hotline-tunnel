@@ -48,8 +48,8 @@ class DummySetSessionDescriptionObserver
 
 
 Conductor::Conductor()
-  : id_(0),
-    peer_id_(0),
+  : local_peer_id_(0),
+    remote_peer_id_(0),
     loopback_(false),
     signal_client_(NULL),
     local_datachannel_serial_(1) {
@@ -74,7 +74,8 @@ void Conductor::Init(bool server_mode,
                     rtc::SocketAddress remote_address,
                     cricket::ProtocolType protocol,
                     std::string room_id,
-                    uint64 id,
+                    uint64 local_peer_id,
+                    uint64 remote_peer_id,
                     SignalServerConnection* signal_client
                 ) {
   server_mode_ = server_mode;
@@ -82,7 +83,8 @@ void Conductor::Init(bool server_mode,
   remote_address_ = remote_address;
   protocol_ = protocol;
   room_id_ = room_id;
-  id_ = id;
+  local_peer_id_ = local_peer_id;
+  remote_peer_id_ = remote_peer_id;
   signal_client_ = signal_client;
 
 }
@@ -90,6 +92,7 @@ void Conductor::Init(bool server_mode,
 bool Conductor::connection_active() const {
   return peer_connection_.get() != NULL;
 }
+
 
 std::string Conductor::id_string() const {
   std::stringstream stream;
@@ -104,6 +107,7 @@ uint64 Conductor::id_from_string(std::string id_string) {
   stream >> id;
   return id;
 }
+
 
 void Conductor::Close() {
   //:client_->SignOut();
@@ -127,7 +131,7 @@ bool Conductor::InitializePeerConnection() {
     DeletePeerConnection();
   }
   
-  std::string channel_name = id_string() + std::string("|") +
+  std::string channel_name = //:id_string() + std::string("|") +
                               kControlDataLabel;
   AddDataChannels(std::string(channel_name), true);
 
@@ -179,7 +183,7 @@ void Conductor::DeletePeerConnection() {
   //:main_wnd_->StopLocalRenderer();
   //:main_wnd_->StopRemoteRenderer();
   peer_connection_factory_ = NULL;
-  peer_id_ = 0;
+  remote_peer_id_ = 0;
   loopback_ = false;
 }
 
@@ -256,7 +260,10 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
     return;
   }
   jmessage[kCandidateSdpName] = sdp;
-  //:SendMessage(writer.write(jmessage));
+  jmessage["room_id"] = room_id_;
+  jmessage["peer_id"] = std::to_string(remote_peer_id_);
+
+  signal_client_->Send(SignalServerConnection::MsgSendOffer, jmessage);
 }
 
 
@@ -364,7 +371,7 @@ void Conductor::OnSocketOpen(SocketConnection* socket){
 
   }
   else{
-    std::string channel_name = id_string() + std::string("|") +
+    std::string channel_name = //:id_string() + std::string("|") +
                                std::to_string(local_datachannel_serial_++);
     if (!AddDataChannels(channel_name, false)) return;
     rtc::scoped_refptr<HotlineDataChannel> channel = datachannels_[channel_name];
@@ -611,8 +618,11 @@ void Conductor::ConnectToPeer(int peer_id) {
 }
 */
 
-void Conductor::ConnectToPeer(uint64 peer_id) {
-  ASSERT( !server_mode_ );
+void Conductor::ConnectToPeer() {
+
+  //: Temporary
+  if (server_mode_) return;
+
 
   if (peer_connection_.get()) {
     printf("Error: We only support connecting to one peer at a time\n");
@@ -620,7 +630,6 @@ void Conductor::ConnectToPeer(uint64 peer_id) {
   }
 
   if (InitializePeerConnection()) {
-    peer_id_ = peer_id;
     peer_connection_->CreateOffer(this, NULL);
   } else {
     printf("Error: Failed to initialize PeerConnection\n");
@@ -810,22 +819,108 @@ void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc) {
     return;
   }
 
-  Json::FastWriter writer;
   Json::Value jmessage;
   jmessage[kSessionDescriptionTypeName] = desc->type();
   jmessage[kSessionDescriptionSdpName] = sdp;
   jmessage["room_id"] = room_id_;
-  jmessage["peer_id"] = std::to_string(peer_id_);
+  jmessage["peer_id"] = std::to_string(remote_peer_id_);
 
-//  signal_client_->Send();
-
-
-//:  SendMessage(writer.write(jmessage));
+  signal_client_->Send(SignalServerConnection::MsgSendOffer, jmessage);
 }
 
 void Conductor::OnFailure(const std::string& error) {
     LOG(LERROR) << error;
 }
+
+void Conductor::OnReceivedOffer(Json::Value& data) {
+
+  std::string peer_id;
+  std::string room_id;
+  std::string type;
+  std::string sdp;
+  uint64 npeer_id;
+
+  if(!GetStringFromJsonObject(data, "peer_id", &peer_id)) {
+    LOG(LS_WARNING) << "Invalid message format";
+    printf("Error: Server response error\n");
+    return;
+  }
+
+  npeer_id = strtoull(peer_id.c_str(), NULL, 10);
+
+  if (!peer_connection_.get()) {
+    if (!InitializePeerConnection()) {
+      LOG(LS_ERROR) << "Failed to initialize our PeerConnection instance";
+//:      client_->SignOut();
+      return;
+    }
+  } else if (npeer_id != remote_peer_id_) {
+//:    ASSERT(peer_id_ != -1);
+    LOG(WARNING) << "Received a message from unknown peer while already in a "
+                    "conversation with a different peer.";
+    return;
+  }
+
+  GetStringFromJsonObject(data, kSessionDescriptionTypeName, &type);
+  if (!type.empty()) {
+    if (type == "offer-loopback") {
+      // This is a loopback call.
+      // Recreate the peerconnection with DTLS disabled.
+      if (!ReinitializePeerConnectionForLoopback()) {
+        LOG(LS_ERROR) << "Failed to initialize our PeerConnection instance";
+        DeletePeerConnection();
+//:        client_->SignOut();
+      }
+      return;
+    }
+
+    std::string sdp;
+    if (!GetStringFromJsonObject(data, kSessionDescriptionSdpName, &sdp)) {
+      LOG(WARNING) << "Can't parse received session description message.";
+      return;
+    }
+    webrtc::SessionDescriptionInterface* session_description(
+        webrtc::CreateSessionDescription(type, sdp));
+    if (!session_description) {
+      LOG(WARNING) << "Can't parse received session description message.";
+      return;
+    }
+
+//:    LOG(INFO) << " Received session description :" << message;
+    peer_connection_->SetRemoteDescription(
+        DummySetSessionDescriptionObserver::Create(), session_description);
+
+    if (session_description->type() ==
+        webrtc::SessionDescriptionInterface::kOffer) {
+      peer_connection_->CreateAnswer(this, NULL);
+    }
+    return;
+  } else {
+    std::string sdp_mid;
+    int sdp_mlineindex = 0;
+    std::string sdp;
+    if (!GetStringFromJsonObject(data, kCandidateSdpMidName, &sdp_mid) ||
+        !GetIntFromJsonObject(data, kCandidateSdpMlineIndexName,
+                              &sdp_mlineindex) ||
+        !GetStringFromJsonObject(data, kCandidateSdpName, &sdp)) {
+      LOG(WARNING) << "Can't parse received message.";
+      return;
+    }
+    rtc::scoped_ptr<webrtc::IceCandidateInterface> candidate(
+        webrtc::CreateIceCandidate(sdp_mid, sdp_mlineindex, sdp));
+    if (!candidate.get()) {
+      LOG(WARNING) << "Can't parse received candidate message.";
+      return;
+    }
+    if (!peer_connection_->AddIceCandidate(candidate.get())) {
+      LOG(WARNING) << "Failed to apply the received candidate";
+      return;
+    }
+//:    LOG(INFO) << " Received candidate :" << message;
+    return;
+  }
+}
+
 
 /*
 void Conductor::SendMessage(const std::string& json_object) {
