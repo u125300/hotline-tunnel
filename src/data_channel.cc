@@ -127,12 +127,12 @@ void HotlineControlDataChannel::OnMessage(const webrtc::DataBuffer& buffer) {
   if (!GetValueFromJsonObject(jmessage, "data", &data)) return;
 
   switch (id) {
-  case MsgCreateClient:
-    OnCreateClient(data);
+  case MsgCreateChannel:
+    OnCreateChannel(data);
     break;
 
-  case MsgClientCreated:
-    OnClientCreated(data);
+  case MsgChannelCreated:
+    OnChannelCreated(data);
     break;
 
   case MsgServerSideReady:
@@ -146,53 +146,52 @@ void HotlineControlDataChannel::OnMessage(const webrtc::DataBuffer& buffer) {
 
 
 
-bool HotlineControlDataChannel::CreateClient(uint64 client_id, std::string& remote_address, cricket::ProtocolType protocol) {
+bool HotlineControlDataChannel::CreateChannel(std::string& remote_address, cricket::ProtocolType protocol) {
   Json::FastWriter writer;
   Json::Value jmessage;
   Json::Value data;
 
-  data["id"] = std::to_string(client_id);
+//:  data["id"] = std::to_string(client_id);
   data["remote_address"] = remote_address;
   data["protocol"] = protocol;
 
-
-  jmessage["id"] = MsgCreateClient;
+  jmessage["id"] = MsgCreateChannel;
   jmessage["data"] = data;
 
   webrtc::DataBuffer buffer(writer.write(jmessage));
   return channel_->Send(buffer);
 }
 
-void HotlineControlDataChannel::OnCreateClient(Json::Value& json_data) {
 
-  std::string id_string;
+void HotlineControlDataChannel::OnCreateChannel(Json::Value& json_data) {
+//:  std::string id_string;
   std::string remote_address_string;
   cricket::ProtocolType protocol;
 
-  if (!GetStringFromJsonObject(json_data, "id", &id_string)) return;
+//:  if (!GetStringFromJsonObject(json_data, "id", &id_string)) return;
   if (!GetStringFromJsonObject(json_data, "remote_address", &remote_address_string)) return;
   if (!GetIntFromJsonObject(json_data, "protocol", (int*)&protocol)) return;
 
-  uint64 id = std::stoull(id_string);
+//:  uint64 id = std::stoull(id_string);
   rtc::SocketAddress remote_address;
   if (!remote_address.FromString(remote_address_string)) return;
   if (protocol != cricket::PROTO_UDP && protocol != cricket::PROTO_TCP) return;
 
-  callback_->OnCreateClient(id, remote_address, protocol);
-  ClientCreated(id);
+  callback_->OnCreateChannel(remote_address, protocol);
+  ChannelCreated();
 
   return;
 }
 
-bool HotlineControlDataChannel::ClientCreated(uint64 client_id) {
+bool HotlineControlDataChannel::ChannelCreated() {
   Json::FastWriter writer;
   Json::Value jmessage;
   Json::Value data;
 
-  data["id"] = std::to_string(client_id);
+//:  data["id"] = std::to_string(client_id);
 
 
-  jmessage["id"] = MsgClientCreated;
+  jmessage["id"] = MsgChannelCreated;
   jmessage["data"] = data;
 
   webrtc::DataBuffer buffer(writer.write(jmessage));
@@ -200,15 +199,13 @@ bool HotlineControlDataChannel::ClientCreated(uint64 client_id) {
 }
 
 
-void HotlineControlDataChannel::OnClientCreated(Json::Value& json_data) {
+void HotlineControlDataChannel::OnChannelCreated(Json::Value& json_data) {
 
-  std::string id_string;
+//:  std::string id_string;
+//:  if (!GetStringFromJsonObject(json_data, "id", &id_string)) return;
+//:  uint64 id = std::stoull(id_string);
 
-  if (!GetStringFromJsonObject(json_data, "id", &id_string)) return;
-
-  uint64 id = std::stoull(id_string);
-
-  callback_->OnClientCreated(id);  
+  callback_->OnChannelCreated();  
   return;
 }
 

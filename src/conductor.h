@@ -48,11 +48,11 @@ class Conductor
 
   bool connection_active() const;
 
-  
+  /*
   uint64 id() {return id_;}
   std::string id_string() const;
   static uint64 Conductor::id_from_string(std::string id_string);
-  
+  */
 
   void ConnectToPeer();
   virtual void OnReceivedOffer(Json::Value& data);
@@ -61,29 +61,31 @@ class Conductor
   virtual void Close();
 
  protected:
-   class ClientInfo{
+   
+   class ChannelDescription{
    public:
-     ClientInfo(uint64 id, rtc::SocketAddress remote_address, cricket::ProtocolType protocol) :
-                 id_(id), remote_address_(remote_address), protocol_(protocol){}
-     uint64 id() const{return id_;}
-     std::string& id_string() const;
+     ChannelDescription() {}
+     
+     void Set(rtc::SocketAddress remote_address, cricket::ProtocolType protocol) {
+       remote_address_ = remote_address;
+       protocol_ = protocol;
+     }
+                 
      rtc::SocketAddress& remote_address() { return remote_address_;}
      cricket::ProtocolType protocol() { return protocol_; }
    private:
-     uint64 id_;
      rtc::SocketAddress remote_address_;
      cricket::ProtocolType protocol_;
   };
+  
 
   bool InitializePeerConnection();
   bool ReinitializePeerConnectionForLoopback();
   bool CreatePeerConnection(bool dtls);
   void DeletePeerConnection();
   void EnsureStreamingUI();
-  bool AddDataChannels(std::string& channel_name, bool controlchannel);
-  ClientInfo* FindClientInfo(std::string& channel_name);
-  void RemoveClientInfo(std::string& channel_name);
-
+  bool AddControlDataChannel();
+  bool AddPacketDataChannel(std::string* channel_name);
 
 
   //
@@ -105,8 +107,8 @@ class Conductor
   virtual void OnControlDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel, bool is_local);
   virtual void OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> channel);
   virtual void OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel);
-  virtual void OnCreateClient(uint64 id, rtc::SocketAddress& remote_address, cricket::ProtocolType protocol);
-  virtual void OnClientCreated(uint64 id);
+  virtual void OnCreateChannel(rtc::SocketAddress& remote_address, cricket::ProtocolType protocol);
+  virtual void OnChannelCreated();
   virtual void OnServerSideReady(std::string& channel_name);
 
 
@@ -153,11 +155,12 @@ class Conductor
 //:  std::string password_;
   cricket::ProtocolType protocol_;
 
-  uint64 id_;
+//:  uint64 id_;
   std::string server_;
 
-  typedef std::map<uint64, rtc::scoped_ptr<ClientInfo>> ClientMap;
-  ClientMap client_conductors_;
+  ChannelDescription channel_;
+//:  typedef std::map<uint64, rtc::scoped_ptr<ChannelDescription>> ChannelMap;
+//:  ChannelMap channel_descs_;
 };
 
 } // namespace hotline

@@ -27,8 +27,8 @@ struct HotlineDataChannelObserver{
   virtual void OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> channel) = 0;
   virtual void OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel) = 0;
 
-  virtual void OnCreateClient(uint64 id, rtc::SocketAddress& remote_address, cricket::ProtocolType protocol) = 0;
-  virtual void OnClientCreated(uint64 id) = 0;
+  virtual void OnCreateChannel(rtc::SocketAddress& remote_address, cricket::ProtocolType protocol) = 0;
+  virtual void OnChannelCreated() = 0;
   virtual void OnServerSideReady(std::string& channel_name) = 0;
 
 protected:
@@ -94,8 +94,8 @@ class HotlineControlDataChannel
   : public HotlineDataChannel {
 public:
   enum MSGID {
-    MsgCreateClient,
-    MsgClientCreated,
+    MsgCreateChannel,
+    MsgChannelCreated,
     MsgServerSideReady
   };
 
@@ -104,8 +104,8 @@ public:
               : HotlineDataChannel(channel, is_local){is_control_channel_ = true;}
   virtual ~HotlineControlDataChannel() {}
 
-  bool CreateClient(uint64 client_id, std::string& remote_address, cricket::ProtocolType protocol);
-  bool ClientCreated(uint64 client_id);
+  bool CreateChannel(std::string& remote_address, cricket::ProtocolType protocol);
+  bool ChannelCreated();
   bool ServerSideReady(std::string& channel_name);
 
 protected:
@@ -113,8 +113,8 @@ protected:
   virtual void OnMessage(const webrtc::DataBuffer& buffer);
 
 private:
-  void OnCreateClient(Json::Value& json_data);
-  void OnClientCreated(Json::Value& json_data);
+  void OnCreateChannel(Json::Value& json_data);
+  void OnChannelCreated(Json::Value& json_data);
   void OnServerSideReady(Json::Value& json_data);
 
 };

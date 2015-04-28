@@ -54,12 +54,8 @@ Conductor::Conductor()
     signal_client_(NULL),
     local_datachannel_serial_(1) {
 
-  if (server_mode_){
-    socket_client_.RegisterObserver(this);
-  }
-  else{
-    socket_listen_server_.RegisterObserver(this);
-  }
+  socket_client_.RegisterObserver(this);
+  socket_listen_server_.RegisterObserver(this);
   
   //:main_wnd->RegisterObserver(this);
 }
@@ -93,7 +89,7 @@ bool Conductor::connection_active() const {
   return peer_connection_.get() != NULL;
 }
 
-
+/*
 std::string Conductor::id_string() const {
   std::stringstream stream;
   stream << std::hex << id_;
@@ -107,7 +103,7 @@ uint64 Conductor::id_from_string(std::string id_string) {
   stream >> id;
   return id;
 }
-
+*/
 
 void Conductor::Close() {
   //:client_->SignOut();
@@ -131,9 +127,7 @@ bool Conductor::InitializePeerConnection() {
     DeletePeerConnection();
   }
   
-  std::string channel_name = //:id_string() + std::string("|") +
-                              kControlDataLabel;
-  AddDataChannels(std::string(channel_name), true);
+  AddControlDataChannel();
 
   //:main_wnd_->SwitchToStreamingUI();
 
@@ -273,11 +267,10 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
 //
 
 void Conductor::OnControlDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> channel, bool is_local){
-
   LOG(INFO) << "Main data channel opened.";
   if (!server_mode_) {
     if (is_local) {
-      local_control_datachannel_->CreateClient(id(), remote_address_.ToString(), protocol_);
+      local_control_datachannel_->CreateChannel(remote_address_.ToString(), protocol_);
     }
     else{
     }
@@ -290,7 +283,6 @@ void Conductor::OnControlDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel
   if (server_mode_) {
     if (is_local){
       socket_client_.Disconnect();
-      RemoveClientInfo(channel->label());
     }
   }
   else {
@@ -305,10 +297,7 @@ void Conductor::OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> c
   if (server_mode_){
     if (channel==NULL) return;
 
-    ClientInfo* client_info = FindClientInfo(channel->label());
-    if (client_info==NULL) return;
-
-    SocketConnection* connection = socket_client_.Connect(client_info->remote_address(), client_info->protocol());
+    SocketConnection* connection = socket_client_.Connect(channel_.remote_address(), channel_.protocol());
     if (connection==NULL) {
       channel->Close();
       return;
@@ -335,19 +324,16 @@ void Conductor::OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel>
   if (socket) socket->Close();
 }
 
-void Conductor::OnCreateClient(uint64 id, rtc::SocketAddress& remote_address, cricket::ProtocolType protocol){
+
+void Conductor::OnCreateChannel(rtc::SocketAddress& remote_address, cricket::ProtocolType protocol){
   ASSERT(server_mode_);
-  ASSERT(client_conductors_.find(id) == client_conductors_.end());
-
-  typedef std::pair<uint64, rtc::scoped_ptr<ClientInfo>> ClientInfoPair;
-
-  rtc::scoped_ptr<ClientInfo> info(new ClientInfo(id, remote_address, protocol));
-  client_conductors_.insert(ClientInfoPair(id, info.Pass()));
+  channel_.Set(remote_address, protocol);
 }
 
-void Conductor::OnClientCreated(uint64 id) {
+
+void Conductor::OnChannelCreated() {
   ASSERT(!server_mode_);
-  ASSERT(id==id_);
+//:  ASSERT(id==id_);
   socket_listen_server_.Listen(local_address_, protocol_);
 }
 
@@ -371,9 +357,9 @@ void Conductor::OnSocketOpen(SocketConnection* socket){
 
   }
   else{
-    std::string channel_name = //:id_string() + std::string("|") +
-                               std::to_string(local_datachannel_serial_++);
-    if (!AddDataChannels(channel_name, false)) return;
+    std::string channel_name;
+    if (!AddPacketDataChannel(&channel_name)) return;
+
     rtc::scoped_refptr<HotlineDataChannel> channel = datachannels_[channel_name];
     if (channel==NULL) return;
 
@@ -636,82 +622,71 @@ void Conductor::ConnectToPeer() {
   }
 }
 
-//
-// Add data channels to send
-//
 
-bool Conductor::AddDataChannels(std::string& channel_name, bool controlchannel) {
+bool Conductor::AddControlDataChannel() {
 
   typedef std::pair<std::string,
-    rtc::scoped_refptr<HotlineDataChannel> >
-                    DataChannelObserverPair;
+    rtc::scoped_refptr<HotlineDataChannel> > DataChannelObserverPair;
+
+  int current_serial = local_datachannel_serial_++;
 
   webrtc::DataChannelInit config;
   config.reliable = true;
   config.ordered = true;
+  config.id =current_serial;
 
-  if (controlchannel) {
-    rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
-      peer_connection_->CreateDataChannel(channel_name, &config);
+  rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
+    peer_connection_->CreateDataChannel(kControlDataLabel, &config);
 
-    if (data_channel.get() == NULL) {
-      LOG(LS_ERROR) << "CreateDataChannel(" + channel_name +") to PeerConnection failed";
-      return false;
-    }
-
-    local_control_datachannel_ = new rtc::RefCountedObject<HotlineControlDataChannel>(data_channel, true);
-    local_control_datachannel_->RegisterObserver(this);
-    return true;
-
+  if (data_channel.get() == NULL) {
+    LOG(LS_ERROR) << "CreateDataChannel(" + std::string(kControlDataLabel) +") to PeerConnection failed";
+    return false;
   }
-  else {
-    rtc::scoped_refptr<HotlineDataChannel> data_channel_observer;
-    if (datachannels_.find(channel_name) != datachannels_.end()) {
-      return true;  // Already added.
-    }
 
-    rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
-      peer_connection_->CreateDataChannel(channel_name, &config);
+  local_control_datachannel_ = new rtc::RefCountedObject<HotlineControlDataChannel>(data_channel, true);
+  local_control_datachannel_->RegisterObserver(this);
+  return true;
+}
 
-    if (data_channel.get() == NULL) {
-      LOG(LS_ERROR) << "CreateDataChannel to PeerConnection failed";
-      return false;
-    }
 
-    data_channel_observer = 
-                  new rtc::RefCountedObject<HotlineDataChannel>(data_channel, true);
+bool Conductor::AddPacketDataChannel(std::string* channel_name) {
 
-    ASSERT(data_channel_observer.get()!=NULL);
+  typedef std::pair<std::string,
+    rtc::scoped_refptr<HotlineDataChannel> > DataChannelObserverPair;
 
-    datachannels_.insert(DataChannelObserverPair(data_channel->label(),
-                               data_channel_observer));
+  int current_serial = local_datachannel_serial_++;
 
-    data_channel_observer->RegisterObserver(this);
-    return true;
+  webrtc::DataChannelInit config;
+  config.reliable = true;
+  config.ordered = true;
+  config.id =current_serial;
+
+  *channel_name = std::to_string(current_serial);
+
+  rtc::scoped_refptr<HotlineDataChannel> data_channel_observer;
+  if (datachannels_.find(*channel_name) != datachannels_.end()) {
+    return true;  // Already added.
   }
+
+  rtc::scoped_refptr<webrtc::DataChannelInterface> data_channel =
+    peer_connection_->CreateDataChannel(*channel_name, &config);
+
+  if (data_channel.get() == NULL) {
+    LOG(LS_ERROR) << "CreateDataChannel to PeerConnection failed";
+    return false;
+  }
+
+  data_channel_observer = 
+                new rtc::RefCountedObject<HotlineDataChannel>(data_channel, true);
+
+  ASSERT(data_channel_observer.get()!=NULL);
+
+  datachannels_.insert(DataChannelObserverPair(data_channel->label(),
+                              data_channel_observer));
+
+  data_channel_observer->RegisterObserver(this);
+  return true;
 }
-
-
-Conductor::ClientInfo* Conductor::FindClientInfo(std::string& channel_name) {
-  size_t pos = channel_name.find("|");
-  if (pos==std::string::npos) return NULL;
-
-  std::string id_string = channel_name.substr(0, pos);  
-  uint64 id =  id_from_string(id_string);
-
-  return client_conductors_.find(id)->second.get();
-}
-
-void Conductor::RemoveClientInfo(std::string& channel_name) {
-  size_t pos = channel_name.find("|");
-  if (pos==std::string::npos) return;
-
-  std::string id_string = channel_name.substr(0, pos);  
-  uint64 id =  id_from_string(id_string);
-
-  client_conductors_.erase(id);
-}
-
 
 //:
 /*
