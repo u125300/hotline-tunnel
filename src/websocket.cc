@@ -8,6 +8,7 @@
 
 #include "webrtc/base/refcount.h"
 #include "webrtc/base/common.h"
+#include "webrtc/base/logging.h"
 #include "webrtc/system_wrappers/interface/trace.h"
 #ifdef ARRAY_SIZE
 #undef ARRAY_SIZE
@@ -116,6 +117,9 @@ void WsThreadHelper::quitSubThread()
 void WsThreadHelper::wsThreadEntryFunc()
 {
   _ws->onSubThreadStarted();
+  
+  //: TODO, FIX
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
 
   while (!_needQuit) {
     if (_ws->onSubThreadLoop()) {
@@ -318,11 +322,11 @@ int WebSocket::onSubThreadLoop()
   }
     
   if (_wsContext && _readyState != State::CLOSED && _readyState != State::CLOSING) {
-    libwebsocket_service(_wsContext, 50);
+    libwebsocket_service(_wsContext, 10);
   }
     
   // Sleep 50 ms
-  //    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+  //std::this_thread::sleep_for(std::chrono::milliseconds(50));
 
   // return 0 to continue the loop.
   return 0;

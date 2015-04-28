@@ -66,8 +66,6 @@ public:
     Json::Value data_;
   };
 
-
-
   SignalServerConnection(rtc::Thread* signal_thread);
   virtual ~SignalServerConnection();
 

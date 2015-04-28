@@ -19,7 +19,6 @@ SignalServerConnection::SignalServerConnection(rtc::Thread* signal_thread)
 }
 
 SignalServerConnection::~SignalServerConnection() {
-  
 }
 
 
@@ -62,8 +61,6 @@ void SignalServerConnection::RegisterObserver(SignalServerConnectionObserver* ca
   ASSERT(callback_ == NULL);
   callback_ = callback;
 }
-
-
 
 
 void SignalServerConnection::InitSocketSignals() {
@@ -214,7 +211,7 @@ void SignalServerConnection::OnReceivedOffer(Json::Value& data) {
 
 void SignalServerConnection::Close() {
   ASSERT(signal_thread_ != NULL);
-  signal_thread_->Post(this);
+  signal_thread_->Post(this, MsgClose);
 }
 
 template<typename T>
