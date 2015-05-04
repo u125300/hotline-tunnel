@@ -160,7 +160,7 @@ void Conductors::OnMessageSent() {
 }
 
 void Conductors::OnDisconnected() {
-
+  printf("Connection to signal server closed.\n");
 }
 
 void Conductors::OnServerConnectionFailure() {
