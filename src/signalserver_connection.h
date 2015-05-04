@@ -103,7 +103,6 @@ private:
   rtc::scoped_ptr<WebSocket> ws_;
   SignalServerConnectionObserver* callback_;
   rtc::Thread *signal_thread_;
-  std::string password_;
 };
 
 
