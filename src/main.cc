@@ -13,18 +13,23 @@
 #include "signalserver_connection.h"
 
 
+#if WIN32
+bool ReinitializeWinSock();
+#endif
+
 void Usage();
 void Error(const std::string& msg);
 void FatalError(const std::string& msg);
 
 
 int main(int argc, char** argv) {
+
   rtc::WindowsCommandLineArguments win_args;
 
   rtc::FlagList::SetFlagsFromCommandLine(&argc, argv, true);
   if (FLAG_help) {
     rtc::FlagList::Print(NULL, false);
-    return 0;
+    return 1;
   }
 
   //
@@ -50,13 +55,13 @@ int main(int argc, char** argv) {
     if (local_port.find(":") == std::string::npos) local_port = "0.0.0.0:"+local_port;
     if (!arguments.local_address.FromString(local_port)) {
       LOG(LS_ERROR) << argv[1] + std::string(" is not a valid port or address");
-      return -1;
+      return 1;
     }
 
     if (remote_port.find(":") == std::string::npos) remote_port = "127.0.0.1:" + remote_port;
     if (!arguments.remote_address.FromString(remote_port)) {
       LOG(LS_ERROR) << argv[1] + std::string(" is not a valid port or address");
-      return -1;
+      return 1;
     }
   }
 
@@ -68,6 +73,11 @@ int main(int argc, char** argv) {
   rtc::EnsureWinsockInit();
   rtc::Win32Thread w32_thread;
   rtc::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
+
+  if (!ReinitializeWinSock()) {
+    Error("WinSock initialization failed.");
+    return 1;
+  }
 #endif
 
   rtc::InitializeSSL();
@@ -80,7 +90,7 @@ int main(int argc, char** argv) {
 
   std::string server_url = GetDefaultServerName();
   if ((server_url.find("ws://") != 0 && server_url.find("wss://") != 0)) {
-    return -1;
+    return 1;
   }
 
   if (server_url.back() != '/') server_url.push_back('/');
@@ -94,6 +104,29 @@ int main(int argc, char** argv) {
   return 0;
 }
 
+#if WIN32
+bool ReinitializeWinSock() {
+
+  // There is version confliction of WinSock between webrtc and libwebsockets.
+  // Webrtc needs winsock 1.0 and libwebsockets needs winsock 2.2.
+  // So cleanup webrtc's winsock initiaization and reinitialize with version 2.2.
+  // otherwise, signalserver connection will be failed with LWS_CALLBACK_CLIENT_CONNECTION_ERROR.
+
+  WSACleanup();
+
+  WORD wVersionRequested;
+  WSADATA wsaData;
+  int err;
+
+	/* Use the MAKEWORD(lowbyte, highbyte) macro from Windef.h */
+  wVersionRequested = MAKEWORD(2, 2);
+
+  err = WSAStartup(wVersionRequested, &wsaData);
+  if (!err) return true;
+
+  return false;
+}
+#endif // WIN32
 
 // Prints out a usage message then exits.
 void Usage() {

@@ -118,9 +118,6 @@ void WsThreadHelper::wsThreadEntryFunc()
 {
   _ws->onSubThreadStarted();
   
-  //: TODO, FIX
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-
   while (!_needQuit) {
     if (_ws->onSubThreadLoop()) {
       break;
