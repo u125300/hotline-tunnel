@@ -780,7 +780,7 @@ void Conductor::OnReceivedOffer(Json::Value& data) {
   std::string sdp;
   uint64 npeer_id;
 
-  if(!GetStringFromJsonObject(data, "peer_id", &peer_id)) {
+  if(!rtc::GetStringFromJsonObject(data, "peer_id", &peer_id)) {
     LOG(LS_WARNING) << "Invalid message format";
     printf("Error: Server response error\n");
     return;
@@ -801,7 +801,7 @@ void Conductor::OnReceivedOffer(Json::Value& data) {
     return;
   }
 
-  GetStringFromJsonObject(data, kSessionDescriptionTypeName, &type);
+  rtc::GetStringFromJsonObject(data, kSessionDescriptionTypeName, &type);
   if (!type.empty()) {
     if (type == "offer-loopback") {
       // This is a loopback call.
@@ -815,7 +815,7 @@ void Conductor::OnReceivedOffer(Json::Value& data) {
     }
 
     std::string sdp;
-    if (!GetStringFromJsonObject(data, kSessionDescriptionSdpName, &sdp)) {
+    if (!rtc::GetStringFromJsonObject(data, kSessionDescriptionSdpName, &sdp)) {
       LOG(WARNING) << "Can't parse received session description message.";
       return;
     }
@@ -839,10 +839,10 @@ void Conductor::OnReceivedOffer(Json::Value& data) {
     std::string sdp_mid;
     int sdp_mlineindex = 0;
     std::string sdp;
-    if (!GetStringFromJsonObject(data, kCandidateSdpMidName, &sdp_mid) ||
-        !GetIntFromJsonObject(data, kCandidateSdpMlineIndexName,
+    if (!rtc::GetStringFromJsonObject(data, kCandidateSdpMidName, &sdp_mid) ||
+        !rtc::GetIntFromJsonObject(data, kCandidateSdpMlineIndexName,
                               &sdp_mlineindex) ||
-        !GetStringFromJsonObject(data, kCandidateSdpName, &sdp)) {
+        !rtc::GetStringFromJsonObject(data, kCandidateSdpName, &sdp)) {
       LOG(WARNING) << "Can't parse received message.";
       return;
     }

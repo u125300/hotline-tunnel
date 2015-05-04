@@ -123,8 +123,8 @@ void SignalServerConnection::onMessage(WebSocket* ws, const WebSocket::Data& dat
   MsgID msgid;
   Json::Value payload_data;
 
-  if(!GetIntFromJsonObject(jmessage, "msgid", (int*)&msgid)) return;
-  if(!GetValueFromJsonObject(jmessage, "data", &payload_data)) return;
+  if(!rtc::GetIntFromJsonObject(jmessage, "msgid", (int*)&msgid)) return;
+  if(!rtc::GetValueFromJsonObject(jmessage, "data", &payload_data)) return;
 
   msgdata = new ServerMessageData(msgid, payload_data);
   signal_thread_->Post(this, ThreadMsgId::MsgServer, msgdata);
@@ -143,8 +143,8 @@ void SignalServerConnection::OnCreatedRoom(Json::Value& data) {
   bool successful;
   std::string room_id;
 
-  if(!GetBoolFromJsonObject(data, "successful", &successful)
-      || !GetStringFromJsonObject(data, "room_id", &room_id)) {
+  if(!rtc::GetBoolFromJsonObject(data, "successful", &successful)
+      || !rtc::GetStringFromJsonObject(data, "room_id", &room_id)) {
     LOG(LS_WARNING) << "Invalid message format";
     printf("Error: Server response error\n");
     Close();
@@ -167,10 +167,10 @@ void SignalServerConnection::OnSignedIn(Json::Value& data) {
   std::string message;
   uint64 npeer_id;
 
-  if(!GetBoolFromJsonObject(data, "successful", &successful)
-      || !GetStringFromJsonObject(data, "room_id", &room_id)
-      || !GetStringFromJsonObject(data, "peer_id", &peer_id)
-      || !GetStringFromJsonObject(data, "message", &message)
+  if(!rtc::GetBoolFromJsonObject(data, "successful", &successful)
+      || !rtc::GetStringFromJsonObject(data, "room_id", &room_id)
+      || !rtc::GetStringFromJsonObject(data, "peer_id", &peer_id)
+      || !rtc::GetStringFromJsonObject(data, "message", &message)
       ) {
     LOG(LS_WARNING) << "Invalid message format";
     printf("Error: Server response error\n");
@@ -193,7 +193,7 @@ void SignalServerConnection::OnPeerConnected(Json::Value& data) {
   std::string peer_id;
   uint64 npeer_id;
 
-  if(!GetStringFromJsonObject(data, "peer_id", &peer_id)) {
+  if(!rtc::GetStringFromJsonObject(data, "peer_id", &peer_id)) {
     LOG(LS_WARNING) << "Invalid message format";
     printf("Error: Server response error\n");
     return;

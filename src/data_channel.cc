@@ -3,6 +3,7 @@
 #include "webrtc/base/common.h"
 #include "webrtc/base/thread.h"
 #include "webrtc/base/logging.h"
+#include "webrtc/base/json.h"
 #include "data_channel.h"
 #include "socket.h"
 
@@ -123,8 +124,8 @@ void HotlineControlDataChannel::OnMessage(const webrtc::DataBuffer& buffer) {
   MSGID id;
   Json::Value data;
 
-  if(!GetIntFromJsonObject(jmessage, "id", (int*)&id)) return;
-  if (!GetValueFromJsonObject(jmessage, "data", &data)) return;
+  if(!rtc::GetIntFromJsonObject(jmessage, "id", (int*)&id)) return;
+  if (!rtc::GetValueFromJsonObject(jmessage, "data", &data)) return;
 
   switch (id) {
   case MsgCreateChannel:
@@ -169,8 +170,8 @@ void HotlineControlDataChannel::OnCreateChannel(Json::Value& json_data) {
   cricket::ProtocolType protocol;
 
 //:  if (!GetStringFromJsonObject(json_data, "id", &id_string)) return;
-  if (!GetStringFromJsonObject(json_data, "remote_address", &remote_address_string)) return;
-  if (!GetIntFromJsonObject(json_data, "protocol", (int*)&protocol)) return;
+  if (!rtc::GetStringFromJsonObject(json_data, "remote_address", &remote_address_string)) return;
+  if (!rtc::GetIntFromJsonObject(json_data, "protocol", (int*)&protocol)) return;
 
 //:  uint64 id = std::stoull(id_string);
   rtc::SocketAddress remote_address;
@@ -228,7 +229,7 @@ bool HotlineControlDataChannel::ServerSideReady(std::string& channel_name) {
 void HotlineControlDataChannel::OnServerSideReady(Json::Value& json_data) {
   
   std::string channel_name;
-  if (!GetStringFromJsonObject(json_data, "channel_name", &channel_name)) return;
+  if (!rtc::GetStringFromJsonObject(json_data, "channel_name", &channel_name)) return;
   callback_->OnServerSideReady(channel_name);  
 
 }

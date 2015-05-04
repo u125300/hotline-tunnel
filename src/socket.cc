@@ -278,7 +278,7 @@ void SocketConnection::SendQueuedDataMessages() {
       if (write_result == rtc::SR_SUCCESS) {
         if (buffer->size() < written) {
           memmove(buffer->data.data(), buffer->data.data() + written, buffer->size()-written);
-          buffer->data.SetLength(buffer->size()-written);
+          buffer->data.SetSize(buffer->size()-written);
           continue;
         }
         break;

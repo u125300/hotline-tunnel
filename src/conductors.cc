@@ -131,7 +131,7 @@ void Conductors::OnReceivedOffer(Json::Value& data) {
   std::string peer_id;
   uint64 npeer_id;
 
-  if(!GetStringFromJsonObject(data, "peer_id", &peer_id)) {
+  if(!rtc::GetStringFromJsonObject(data, "peer_id", &peer_id)) {
     LOG(LS_WARNING) << "Invalid message format";
     printf("Error: Server response error\n");
     return;
