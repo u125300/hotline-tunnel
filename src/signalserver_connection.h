@@ -23,8 +23,6 @@ struct SignalServerConnectionObserver {
   virtual void OnSignedIn(std::string& room_id, uint64 peer_id) = 0;
   virtual void OnPeerConnected(uint64 peer_id) = 0;
   virtual void OnReceivedOffer(Json::Value& data) = 0;
-  virtual void OnMessageFromPeer() = 0;
-  virtual void OnMessageSent() = 0;
   virtual void OnServerConnectionFailure() = 0;
 
 protected:

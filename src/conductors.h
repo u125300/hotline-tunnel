@@ -64,8 +64,6 @@ class Conductors
   virtual void OnSignedIn(std::string& room_id, uint64 peer_id);
   virtual void OnPeerConnected(uint64 peer_id);
   virtual void OnReceivedOffer(Json::Value& data);
-  virtual void OnMessageFromPeer();
-  virtual void OnMessageSent();
   virtual void OnServerConnectionFailure();
 
   //

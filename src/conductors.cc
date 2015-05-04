@@ -151,13 +151,6 @@ void Conductors::OnReceivedOffer(Json::Value& data) {
 }
 
 
-void Conductors::OnMessageFromPeer() {
-
-}
-
-void Conductors::OnMessageSent() {
-
-}
 
 void Conductors::OnDisconnected() {
   printf("Connection to signal server closed.\n");
