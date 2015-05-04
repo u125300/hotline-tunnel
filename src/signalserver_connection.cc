@@ -62,6 +62,12 @@ void SignalServerConnection::RegisterObserver(SignalServerConnectionObserver* ca
   callback_ = callback;
 }
 
+void SignalServerConnection::UnregisterObserver(SignalServerConnectionObserver* callback) {
+  ASSERT(callback_ != NULL);
+  callback_ = NULL;
+}
+
+
 
 void SignalServerConnection::InitSocketSignals() {
   ASSERT(ws_.get() != NULL);
@@ -76,7 +82,7 @@ void SignalServerConnection::InitSocketSignals() {
 void SignalServerConnection::OnMessage(rtc::Message* msg) {
 
   try {
-    if (msg->message_id == ThreadMsgId::MsgServer) {
+    if (msg->message_id == ThreadMsgId::MsgServerMessage) {
       rtc::scoped_ptr<ServerMessageData> server_msg(static_cast<ServerMessageData*>(msg->pdata));
     
       switch (server_msg->msgid()) {
@@ -96,19 +102,17 @@ void SignalServerConnection::OnMessage(rtc::Message* msg) {
         break;
       }
     }
-    else if (msg->message_id == ThreadMsgId::MsgClose) {
-      ASSERT(callback_ != NULL);
-      callback_->OnServerConnectionFailure();
-    }
   }
   catch (...) {
-    LOG(LS_WARNING) << "OnMessage() Exception.";
+    LOG(LS_WARNING) << "SignalServerConnection::OnMessage() Exception.";
   }
 }
 
 
 void SignalServerConnection::onOpen(WebSocket* ws) {
-  callback_->OnConnected();
+  if (callback_) {
+    callback_->OnConnected();
+  }
 }
 
 void SignalServerConnection::onMessage(WebSocket* ws, const WebSocket::Data& data) {
@@ -127,16 +131,18 @@ void SignalServerConnection::onMessage(WebSocket* ws, const WebSocket::Data& dat
   if(!rtc::GetValueFromJsonObject(jmessage, "data", &payload_data)) return;
 
   msgdata = new ServerMessageData(msgid, payload_data);
-  signal_thread_->Post(this, ThreadMsgId::MsgServer, msgdata);
+  signal_thread_->Post(this, ThreadMsgId::MsgServerMessage, msgdata);
 }
 
 void SignalServerConnection::onClose(WebSocket* ws) {
-  
+  if (callback_) {
+    callback_->OnDisconnected();
+  }
 }
 
 
 void SignalServerConnection::onError(WebSocket* ws, const WebSocket::ErrorCode& error) {
-  
+  ServerConnectionFailure();
 }
 
 void SignalServerConnection::OnCreatedRoom(Json::Value& data) {
@@ -146,18 +152,19 @@ void SignalServerConnection::OnCreatedRoom(Json::Value& data) {
   if(!rtc::GetBoolFromJsonObject(data, "successful", &successful)
       || !rtc::GetStringFromJsonObject(data, "room_id", &room_id)) {
     LOG(LS_WARNING) << "Invalid message format";
-    printf("Error: Server response error\n");
-    Close();
+    ServerConnectionFailure();
     return;
   }
 
   if (!successful) {
     LOG(LS_WARNING) << "Room creation failed.";
-    Close();
+    ServerConnectionFailure();
     return;
   }
 
-  callback_->OnCreatedRoom(room_id);
+  if (callback_) {
+    callback_->OnCreatedRoom(room_id);
+  }
 }
 
 void SignalServerConnection::OnSignedIn(Json::Value& data) {
@@ -173,19 +180,20 @@ void SignalServerConnection::OnSignedIn(Json::Value& data) {
       || !rtc::GetStringFromJsonObject(data, "message", &message)
       ) {
     LOG(LS_WARNING) << "Invalid message format";
-    printf("Error: Server response error\n");
-    Close();
+    ServerConnectionFailure();
     return;
   }
 
   if (!successful) {
     LOG(LS_WARNING) << message.c_str();
-    Close();
+    ServerConnectionFailure();
     return;
   }
 
   npeer_id = strtoull(peer_id.c_str(), NULL, 10);
-  callback_->OnSignedIn(room_id, npeer_id);
+  if (callback_) {
+    callback_->OnSignedIn(room_id, npeer_id);
+  }
 }
 
 
@@ -195,23 +203,26 @@ void SignalServerConnection::OnPeerConnected(Json::Value& data) {
 
   if(!rtc::GetStringFromJsonObject(data, "peer_id", &peer_id)) {
     LOG(LS_WARNING) << "Invalid message format";
-    printf("Error: Server response error\n");
     return;
   }
 
   npeer_id = strtoull(peer_id.c_str(), NULL, 10);
   
-  callback_->OnPeerConnected(npeer_id);
+  if (callback_) {
+    callback_->OnPeerConnected(npeer_id);
+  }
 }
 
 void SignalServerConnection::OnReceivedOffer(Json::Value& data) {
-  callback_->OnReceivedOffer(data);
+  if (callback_) {
+    callback_->OnReceivedOffer(data);
+  }
 }
 
-
-void SignalServerConnection::Close() {
-  ASSERT(signal_thread_ != NULL);
-  signal_thread_->Post(this, MsgClose);
+void SignalServerConnection::ServerConnectionFailure() {
+  if (callback_) {
+    callback_->OnServerConnectionFailure();
+  }
 }
 
 template<typename T>

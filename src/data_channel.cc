@@ -15,6 +15,17 @@
 
 namespace hotline {
 
+HotlineDataChannel::HotlineDataChannel(webrtc::DataChannelInterface* channel, bool is_local)
+  : channel_(channel), socket_(NULL), callback_(NULL), is_local_(is_local), is_control_channel_(false) {
+  channel_->RegisterObserver(this);
+  state_ = channel_->state();
+}
+
+HotlineDataChannel::~HotlineDataChannel() {
+  channel_->UnregisterObserver();
+  channel_->Close();
+}
+
 void HotlineDataChannel::RegisterObserver(HotlineDataChannelObserver* callback) {
   callback_ = callback;
 }
@@ -152,7 +163,6 @@ bool HotlineControlDataChannel::CreateChannel(std::string& remote_address, crick
   Json::Value jmessage;
   Json::Value data;
 
-//:  data["id"] = std::to_string(client_id);
   data["remote_address"] = remote_address;
   data["protocol"] = protocol;
 
@@ -165,15 +175,12 @@ bool HotlineControlDataChannel::CreateChannel(std::string& remote_address, crick
 
 
 void HotlineControlDataChannel::OnCreateChannel(Json::Value& json_data) {
-//:  std::string id_string;
   std::string remote_address_string;
   cricket::ProtocolType protocol;
 
-//:  if (!GetStringFromJsonObject(json_data, "id", &id_string)) return;
   if (!rtc::GetStringFromJsonObject(json_data, "remote_address", &remote_address_string)) return;
   if (!rtc::GetIntFromJsonObject(json_data, "protocol", (int*)&protocol)) return;
 
-//:  uint64 id = std::stoull(id_string);
   rtc::SocketAddress remote_address;
   if (!remote_address.FromString(remote_address_string)) return;
   if (protocol != cricket::PROTO_UDP && protocol != cricket::PROTO_TCP) return;
@@ -189,9 +196,6 @@ bool HotlineControlDataChannel::ChannelCreated() {
   Json::Value jmessage;
   Json::Value data;
 
-//:  data["id"] = std::to_string(client_id);
-
-
   jmessage["id"] = MsgChannelCreated;
   jmessage["data"] = data;
 
@@ -201,11 +205,6 @@ bool HotlineControlDataChannel::ChannelCreated() {
 
 
 void HotlineControlDataChannel::OnChannelCreated(Json::Value& json_data) {
-
-//:  std::string id_string;
-//:  if (!GetStringFromJsonObject(json_data, "id", &id_string)) return;
-//:  uint64 id = std::stoull(id_string);
-
   callback_->OnChannelCreated();  
   return;
 }

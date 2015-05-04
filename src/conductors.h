@@ -31,10 +31,16 @@ struct UserArguments{
 
 
 class Conductors
-    : public SignalServerConnectionObserver {
+    : public SignalServerConnectionObserver,
+      public rtc::MessageHandler {
  public:
 
+   enum ThreadMsgId{
+    MsgExit
+  };
+
   Conductors(SignalServerConnection* signal_client,
+            rtc::Thread* signal_thread,
             UserArguments& arguments);
   virtual ~Conductors();
 
@@ -62,6 +68,14 @@ class Conductors
   virtual void OnMessageSent();
   virtual void OnServerConnectionFailure();
 
+  //
+  // implements the MessageHandler interface
+  //
+  void OnMessage(rtc::Message* msg);
+
+
+  void OnClose();
+
   // Send a message to the remote peer.
   void SendMessage(const std::string& json_object);
 
@@ -84,6 +98,8 @@ class Conductors
   typedef std::map<uint64, rtc::scoped_refptr<Conductor>> PeerMap;
   PeerMap peers_offer_;
   PeerMap peers_answer_;
+
+  rtc::Thread* signal_thread_;
 };
 
 } // namespace hotline

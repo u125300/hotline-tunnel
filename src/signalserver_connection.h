@@ -47,8 +47,7 @@ public:
   };
 
   enum ThreadMsgId{
-    MsgServer,
-    MsgClose
+    MsgServerMessage
   };
 
   struct ServerMessageData : public rtc::MessageData {
@@ -74,6 +73,7 @@ public:
   void SignIn(std::string& room_id, std::string& password);
 
   void RegisterObserver(SignalServerConnectionObserver* callback);
+  void UnregisterObserver(SignalServerConnectionObserver* callback);
 
   template<typename  T>
   bool Send(const MsgID msgid, T& data);
@@ -96,7 +96,7 @@ protected:
 
 private:
   void InitSocketSignals();
-  void Close();
+  void ServerConnectionFailure();
 
   //
   // Member variables

@@ -2,8 +2,6 @@
 #define HOTLINE_TUNNEL_DATA_CHANNEL_H_
 #pragma once
 
-#include <list>
-
 #include "webrtc/base/scoped_ptr.h"
 #include "webrtc/base/scoped_ref_ptr.h"
 #include "webrtc/base/socketaddress.h"
@@ -47,16 +45,8 @@ class HotlineDataChannel
     public rtc::RefCountInterface {
 
 public:
-  explicit HotlineDataChannel(webrtc::DataChannelInterface* channel, bool is_local)
-    : channel_(channel), socket_(NULL), callback_(NULL), is_local_(is_local), is_control_channel_(false) {
-    channel_->RegisterObserver(this);
-    state_ = channel_->state();
-  }
-
-  virtual ~HotlineDataChannel() {
-    channel_->UnregisterObserver();
-    channel_->Close();
-  }
+  explicit HotlineDataChannel(webrtc::DataChannelInterface* channel, bool is_local);
+  virtual ~HotlineDataChannel();
 
   void RegisterObserver(HotlineDataChannelObserver* callback);
   bool AttachSocket(SocketConnection* socket);

@@ -249,7 +249,7 @@ bool WebSocket::init(const std::string& url,
   }
     
   // WebSocket thread needs to be invoked at the end of this method.
-  _wsHelper = new (std::nothrow) WsThreadHelper();
+  _wsHelper = new WsThreadHelper();
   ret = _wsHelper->createThread(*this);
     
   return ret;
@@ -259,9 +259,9 @@ void WebSocket::send(const std::string& message)
 {
   if (_readyState == State::OPEN) {
     // In main thread
-    WsMessage* msg = new (std::nothrow) WsMessage();
+    WsMessage* msg = new WsMessage();
     msg->what = WS_MSG_TO_SUBTRHEAD_SENDING_STRING;
-    Data* data = new (std::nothrow) Data();
+    Data* data = new Data();
     data->bytes = new char[message.length()+1];
     strcpy(data->bytes, message.c_str());
     data->len = static_cast<size_t>(message.length());
@@ -277,9 +277,9 @@ void WebSocket::send(const unsigned char* binaryMsg, unsigned int len)
   if (_readyState == State::OPEN)
   {
     // In main thread
-    WsMessage* msg = new (std::nothrow) WsMessage();
+    WsMessage* msg = new WsMessage();
     msg->what = WS_MSG_TO_SUBTRHEAD_SENDING_BINARY;
-    Data* data = new (std::nothrow) Data();
+    Data* data = new Data();
     data->bytes = new char[len];
     memcpy((void*)data->bytes, (void*)binaryMsg, len);
     data->len = len;
@@ -322,9 +322,6 @@ int WebSocket::onSubThreadLoop()
     libwebsocket_service(_wsContext, 10);
   }
     
-  // Sleep 50 ms
-  //std::this_thread::sleep_for(std::chrono::milliseconds(50));
-
   // return 0 to continue the loop.
   return 0;
 }
@@ -344,9 +341,9 @@ void WebSocket::onSubThreadStarted()
 
   info.port = CONTEXT_PORT_NO_LISTEN;
   info.protocols = _wsProtocols;
-  #ifndef LWS_NO_EXTENSIONS
+#ifndef LWS_NO_EXTENSIONS
   info.extensions = libwebsocket_get_internal_extensions();
-  #endif
+#endif
   info.gid = -1;
   info.uid = -1;
   info.user = (void*)this;
@@ -366,8 +363,8 @@ void WebSocket::onSubThreadStarted()
                                               name.c_str(), -1);
 
     if(nullptr == _wsInstance) {
-      _readyState = State::CLOSING;
       SignalErrorEvent(this, ErrorCode::UNKNOWN);
+      _readyState = State::CLOSING;
     }
   }
 }
@@ -544,7 +541,7 @@ int WebSocket::onSocketCallback(struct libwebsocket_context *ctx,
           // If no more data pending, send it to the client thread
           if (_pendingFrameDataLen == 0) {
             char* bytes = nullptr;
-            Data* data = new (std::nothrow) Data();
+            Data* data = new Data();
 
             if (lws_frame_is_binary(wsi)) {
               bytes = new char[_currentDataLen];

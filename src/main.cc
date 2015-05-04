@@ -23,6 +23,12 @@ void FatalError(const std::string& msg);
 
 
 int main(int argc, char** argv) {
+  
+#if WIN32
+#ifdef _DEBUG 
+  _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+#endif // DEBUG
+#endif //WIN32
 
   rtc::WindowsCommandLineArguments win_args;
 
@@ -82,7 +88,11 @@ int main(int argc, char** argv) {
 
   rtc::InitializeSSL();
   hotline::SignalServerConnection signal_client(rtc::ThreadManager::Instance()->CurrentThread());
-  rtc::scoped_ptr<hotline::Conductors> conductors(new hotline::Conductors(&signal_client, arguments));
+  rtc::scoped_ptr<hotline::Conductors> conductors(
+                              new hotline::Conductors( &signal_client,
+                              rtc::ThreadManager::Instance()->CurrentThread(),
+                              arguments)
+                              );
 
   //
   // Connect to signal server

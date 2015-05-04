@@ -6,13 +6,17 @@
 #include "conductors.h"
 #include "conductor.h"
 
+
+
 namespace hotline {
 
 Conductors::Conductors(SignalServerConnection* signal_client,
+                     rtc::Thread* signal_thread,
                      UserArguments& arguments)
   : //:peer_id_(0),
     id_(0),
     signal_client_(signal_client),
+    signal_thread_(signal_thread),
     server_mode_(arguments.server_mode),
     local_address_(arguments.local_address),
     remote_address_(arguments.remote_address),
@@ -160,13 +164,27 @@ void Conductors::OnDisconnected() {
 }
 
 void Conductors::OnServerConnectionFailure() {
-
-  if (!server_mode_) {
-    rtc::ThreadManager::Instance()->CurrentThread()->Stop();
-  }
+  ASSERT(signal_thread_ != NULL);
+  printf("Signal server connection error.\n");
+  signal_thread_->Post(this, MsgExit);
 }
 
 
+void Conductors::OnMessage(rtc::Message* msg) {
+  try {
+    if (msg->message_id == ThreadMsgId::MsgExit) {
+      OnClose();
+      rtc::ThreadManager::Instance()->CurrentThread()->Stop();
+    }
+  }
+  catch (...) {
+    LOG(LS_WARNING) << "Conductors::OnMessage() Exception.";
+  }
+}
+
+void Conductors::OnClose() {
+  signal_client_->UnregisterObserver(this);
+}
 
 void Conductors::ConnectToPeer(uint64 peer_id) {
 
