@@ -23,12 +23,13 @@ void FatalError(const std::string& msg);
 
 
 int main(int argc, char** argv) {
-  
+
 #if WIN32
-#ifdef _DEBUG 
-  _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
-#endif // DEBUG
-#endif //WIN32
+  // Stop memory leak detection by default and start memory dection after following code
+  // because to prevent display webrtc internal memory leak.
+  //   rtc::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
+  _CrtSetDbgFlag(0);
+#endif
 
   rtc::WindowsCommandLineArguments win_args;
 
@@ -80,11 +81,16 @@ int main(int argc, char** argv) {
   rtc::Win32Thread w32_thread;
   rtc::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
 
+#ifdef _DEBUG 
+  _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+#endif // DEBUG
+
   if (!ReinitializeWinSock()) {
     Error("WinSock initialization failed.");
     return 1;
   }
-#endif
+#endif // WIN32
+
 
   rtc::InitializeSSL();
   hotline::SignalServerConnection signal_client(rtc::ThreadManager::Instance()->CurrentThread());
