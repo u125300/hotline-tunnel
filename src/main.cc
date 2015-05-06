@@ -29,7 +29,27 @@ int main(int argc, char** argv) {
   // because to prevent display webrtc internal memory leak.
   //   rtc::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
   _CrtSetDbgFlag(0);
-#endif
+
+  //
+  // Set current thread
+  //
+  rtc::EnsureWinsockInit();
+  rtc::Win32Thread w32_thread;
+  rtc::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
+
+  //
+  // Enable memory leak detection
+  //
+
+#ifdef _DEBUG 
+  _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
+#endif // DEBUG
+
+  if (!ReinitializeWinSock()) {
+    Error("WinSock initialization failed.");
+    return 1;
+  }
+#endif // WIN32
 
   rtc::WindowsCommandLineArguments win_args;
 
@@ -76,22 +96,6 @@ int main(int argc, char** argv) {
   // Setup conductor
   //
 
-#if WIN32
-  rtc::EnsureWinsockInit();
-  rtc::Win32Thread w32_thread;
-  rtc::ThreadManager::Instance()->SetCurrentThread(&w32_thread);
-
-#ifdef _DEBUG 
-  _CrtSetDbgFlag ( _CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF );
-#endif // DEBUG
-
-  if (!ReinitializeWinSock()) {
-    Error("WinSock initialization failed.");
-    return 1;
-  }
-#endif // WIN32
-
-
   rtc::InitializeSSL();
   hotline::SignalServerConnection signal_client(rtc::ThreadManager::Instance()->CurrentThread());
   rtc::scoped_ptr<hotline::Conductors> conductors(
@@ -119,6 +123,8 @@ int main(int argc, char** argv) {
   rtc::CleanupSSL();
   return 0;
 }
+
+
 
 #if WIN32
 bool ReinitializeWinSock() {
