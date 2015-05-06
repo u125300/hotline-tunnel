@@ -97,6 +97,10 @@ rtc::scoped_refptr<HotlineDataChannel> SocketConnection::DetachChannel() {
   return channel;
 }
 
+rtc::scoped_refptr<HotlineDataChannel> SocketConnection::GetAttachedChannel() {
+  return channel_;
+}
+
 void SocketConnection::SetReady() {
   is_ready_ = true;
 }
@@ -110,7 +114,6 @@ void SocketConnection::BeginProcess(rtc::StreamInterface* stream) {
   stream_ = stream;
   stream_->SignalEvent.connect(this, &SocketConnection::OnStreamEvent);
 }
-
 
 rtc::StreamInterface* SocketConnection::EndProcess(){
   rtc::StreamInterface* stream = stream_;
@@ -127,7 +130,7 @@ bool SocketConnection::Send(const webrtc::DataBuffer& buffer) {
 
   if (stream_->GetState() != rtc::SS_OPEN) {
     if (!QueueSendDataMessage(buffer)) {
-      Close();
+      Stop();
       return false;
     }
     return true;
@@ -139,7 +142,7 @@ bool SocketConnection::Send(const webrtc::DataBuffer& buffer) {
   
   if (!queued_send_data_.Empty()) {
     if (!QueueSendDataMessage(buffer)) {
-      Close();
+      Stop();
       return false;
     }
     return true;
@@ -166,7 +169,7 @@ bool SocketConnection::Send(const webrtc::DataBuffer& buffer) {
     }
     else {
       // rtc::SR_EOS, rtc::SR_ERROR
-      Close();
+      Stop();
       return false;
     }
   }
@@ -175,9 +178,16 @@ bool SocketConnection::Send(const webrtc::DataBuffer& buffer) {
   return true;
 }
 
+
 void SocketConnection::Close() {
   HandleStreamClose();
 }
+
+
+void SocketConnection::Stop() {
+  server_->Stop(this);
+}
+
 
 void SocketConnection::HandleStreamClose(){
   if (closing_) return;
@@ -205,7 +215,7 @@ void SocketConnection::OnStreamEvent(rtc::StreamInterface* stream,
 
   if (events & rtc::SE_CLOSE) {
     LOG(INFO) << __FUNCTION__ << " " << " rtc::SE_CLOSE.";
-    HandleStreamClose();
+    Stop();
   }
 }
 
@@ -230,7 +240,7 @@ void SocketConnection::DoReceiveLoop() {
     if (read_result == rtc::SR_SUCCESS) {
       if (!channel_->Send(recv_buffer_, recv_len_)) {
         ASSERT(FALSE);
-        Close();
+        Stop();
         return;
       }
     }
@@ -238,7 +248,7 @@ void SocketConnection::DoReceiveLoop() {
       break;
     }
     else {
-      Close();
+      Stop();
       return;
     }
   }
@@ -288,7 +298,7 @@ void SocketConnection::SendQueuedDataMessages() {
         continue;
       }
       else {
-        Close();
+        Stop();
         return;
       }
     }
@@ -328,12 +338,17 @@ void SocketBase::UnregisterObserver() {
   callback_ = NULL;
 }
 
+void SocketBase::Stop(SocketConnection* connection) {
+  callback_->OnSocketStop(connection);
+}
+
+
 SocketConnection* SocketBase::HandleConnection(rtc::StreamInterface* stream) {
 
   SocketConnection* connection = new SocketConnection(this);
   if (connection==NULL) return NULL;
 
-  connection->SetPeerId(peer_id());
+  connection->peer_id(peer_id());
   connections_.push_back(connection);
 
   // Notify to conductor

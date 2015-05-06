@@ -25,6 +25,7 @@ class SocketObserver{
 public:
   virtual void OnSocketOpen(SocketConnection* socket) = 0;
   virtual void OnSocketClosed(SocketConnection* socket) = 0;
+  virtual void OnSocketStop(SocketConnection* socket) = 0;
 };
 
 
@@ -40,6 +41,7 @@ class SocketConnection : public sigslot::has_slots<> {
 
   bool AttachChannel(rtc::scoped_refptr<HotlineDataChannel> channel);
   rtc::scoped_refptr<HotlineDataChannel>  DetachChannel();
+  rtc::scoped_refptr<HotlineDataChannel> GetAttachedChannel();
   void SetReady();
   void ReadEvent();
 
@@ -47,9 +49,10 @@ class SocketConnection : public sigslot::has_slots<> {
   rtc::StreamInterface* EndProcess();
   bool Send(const webrtc::DataBuffer& buffer);
   void Close();
+  void Stop();
 
   uint64 peer_id() { return peer_id_; }
-  void SetPeerId(uint64 peer_id) { peer_id_ = peer_id;}
+  void peer_id(uint64 peer_id) { peer_id_ = peer_id;}
 
  protected:
 
@@ -104,7 +107,7 @@ public:
   void UnregisterObserver();
 
   uint64 peer_id() { return peer_id_; }
-  void SetPeerId(uint64 peer_id) { peer_id_ = peer_id;}
+  void peer_id(uint64 peer_id) { peer_id_ = peer_id;}
 
   // Due to sigslot issues, we can't destroy some streams at an arbitrary time.
   sigslot::signal3<SocketBase*, SocketConnection*, rtc::StreamInterface*> SignalConnectionClosed;
@@ -112,6 +115,7 @@ public:
 protected:
   SocketConnection* HandleConnection(rtc::StreamInterface* stream);
   void Remove(SocketConnection* connection);
+  void Stop(SocketConnection* connection);
 
   typedef std::list<SocketConnection*> ConnectionList;
   ConnectionList connections_;

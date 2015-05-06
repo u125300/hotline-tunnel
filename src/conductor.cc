@@ -69,7 +69,8 @@ void Conductor::Init(bool server_mode,
                     std::string room_id,
                     uint64 local_peer_id,
                     uint64 remote_peer_id,
-                    SignalServerConnection* signal_client
+                    SignalServerConnection* signal_client,
+                    rtc::Thread* signal_thread
                 ) {
   server_mode_ = server_mode;
   local_address_ = local_address;
@@ -79,7 +80,7 @@ void Conductor::Init(bool server_mode,
   local_peer_id_ = local_peer_id;
   remote_peer_id_ = remote_peer_id;
   signal_client_ = signal_client;
-
+  signal_thread_ = signal_thread;
 }
 
 bool Conductor::connection_active() const {
@@ -90,6 +91,7 @@ void Conductor::Close() {
   //:client_->SignOut();
   DeletePeerConnection();
 }
+
 
 bool Conductor::InitializePeerConnection() {
   ASSERT(peer_connection_factory_.get() == NULL);
@@ -296,6 +298,15 @@ void Conductor::OnCreateChannel(rtc::SocketAddress& remote_address, cricket::Pro
   channel_.Set(remote_address, protocol);
 }
 
+void Conductor::OnDeleteChannel(std::string& channel_name) {
+  LaneMessageData* msgdata = NULL;
+  rtc::scoped_refptr<HotlineDataChannel> channel = datachannels_[channel_name];
+  if (channel==NULL) return;
+
+  channel->closed_by_remote(true);
+  msgdata = new LaneMessageData(NULL, channel);
+  signal_thread_->Post(this, MsgStopLane, msgdata);
+}
 
 void Conductor::OnChannelCreated() {
   ASSERT(!server_mode_);
@@ -317,7 +328,6 @@ void Conductor::OnServerSideReady(std::string& channel_name) {
 //
 
 void Conductor::OnSocketOpen(SocketConnection* socket){
-
   if (server_mode_){
 
   }
@@ -334,12 +344,19 @@ void Conductor::OnSocketOpen(SocketConnection* socket){
 }
   
 void Conductor::OnSocketClosed(SocketConnection* socket){
-  
-  rtc::scoped_refptr<HotlineDataChannel> channel = socket->DetachChannel();
-  if (channel) {
-      channel->Close();
-  }
+  socket->DetachChannel();
+//:  rtc::scoped_refptr<HotlineDataChannel> channel = socket->DetachChannel();
+//:  if (channel) {
+//:      channel->Close();
+//:  }
 }
+
+void Conductor::OnSocketStop(SocketConnection* socket) {
+  LaneMessageData* msgdata = NULL;
+  msgdata = new LaneMessageData(socket, NULL);
+  signal_thread_->Post(this, MsgStopLane, msgdata);
+}
+
 
 
 //:
@@ -653,6 +670,49 @@ bool Conductor::AddPacketDataChannel(std::string* channel_name) {
   return true;
 }
 
+
+// create client socket + data channel + server socket connection
+bool Conductor::CreateConnectionLane() {
+
+  return true;
+}
+
+// delete client socket + data channel + server socket connection
+void Conductor::DeleteConnectionLane(SocketConnection* connection, rtc::scoped_refptr<HotlineDataChannel> channel) {
+  // Get variables
+  if (connection==NULL && channel==NULL) return;
+
+  if (channel == NULL) {
+    channel = connection->GetAttachedChannel();
+    if (channel==NULL) return;
+  }
+
+  if (connection == NULL) {
+    connection = channel->GetAttachedSocket();
+    if (connection == NULL) return;
+  }
+
+  std::string channel_name = channel->label();
+
+  // Delete socket
+  if (connection) {
+    connection->Close();
+  }
+
+  // TODO: Remote comment if datachannel bug on webrtc resolved.
+  // Send remote peer to delete socket
+
+  // Delete datachannel
+  //:if (channel) {
+  //:    datachannels_.erase(channel->label());
+  //:}
+
+  if (!channel->closed_by_remote()) {
+    local_control_datachannel_->DeleteRemoteChannel(channel_name);
+  }
+}
+
+
 //:
 /*
 void Conductor::DisconnectFromCurrentPeer() {
@@ -771,6 +831,23 @@ void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc) {
 void Conductor::OnFailure(const std::string& error) {
     LOG(LERROR) << error;
 }
+
+void Conductor::OnMessage(rtc::Message* msg) {
+  try {
+    if (msg->message_id == ThreadMsgId::MsgStopLane) {
+      LaneMessageData *msgData = static_cast<LaneMessageData*>(msg->pdata);
+      if (msgData) {
+        DeleteConnectionLane(msgData->socket_connection(), msgData->data_channel());
+        delete msgData;
+      }
+    }
+  }
+  catch (...) {
+    LOG(LS_WARNING) << "Conductor::OnMessage() Exception.";
+  }
+
+}
+
 
 void Conductor::OnReceivedOffer(Json::Value& data) {
 

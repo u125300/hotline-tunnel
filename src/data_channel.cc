@@ -16,7 +16,7 @@
 namespace hotline {
 
 HotlineDataChannel::HotlineDataChannel(webrtc::DataChannelInterface* channel, bool is_local)
-  : channel_(channel), socket_(NULL), callback_(NULL), is_local_(is_local), is_control_channel_(false) {
+  : channel_(channel), socket_(NULL), callback_(NULL), is_local_(is_local), is_control_channel_(false), closed_by_remote_(false) {
   channel_->RegisterObserver(this);
   state_ = channel_->state();
 }
@@ -60,6 +60,10 @@ SocketConnection* HotlineDataChannel::DetachSocket() {
   SocketConnection* socket = socket_;
   socket_ = NULL;
   return socket;
+}
+
+SocketConnection* HotlineDataChannel::GetAttachedSocket() {
+  return socket_;
 }
 
 void HotlineDataChannel::SetSocketReady() {
@@ -147,6 +151,10 @@ void HotlineControlDataChannel::OnMessage(const webrtc::DataBuffer& buffer) {
     OnChannelCreated(data);
     break;
 
+  case MsgDeleteChannel:
+    OnDeleteRemoteChannel(data);
+    break;
+
   case MsgServerSideReady:
     OnServerSideReady(data);
     break;
@@ -222,17 +230,35 @@ bool HotlineControlDataChannel::ServerSideReady(std::string& channel_name) {
 
   webrtc::DataBuffer buffer(writer.write(jmessage));
   return channel_->Send(buffer);
-
 }
 
+
 void HotlineControlDataChannel::OnServerSideReady(Json::Value& json_data) {
-  
   std::string channel_name;
   if (!rtc::GetStringFromJsonObject(json_data, "channel_name", &channel_name)) return;
   callback_->OnServerSideReady(channel_name);  
-
 }
 
 
+bool HotlineControlDataChannel::DeleteRemoteChannel(std::string& channel_name) {
+  Json::FastWriter writer;
+  Json::Value jmessage;
+  Json::Value data;
+
+  data["channel_name"] = channel_name;
+
+
+  jmessage["id"] = MsgDeleteChannel;
+  jmessage["data"] = data;
+
+  webrtc::DataBuffer buffer(writer.write(jmessage));
+  return channel_->Send(buffer);
+}
+
+void HotlineControlDataChannel::OnDeleteRemoteChannel(Json::Value& json_data) {
+  std::string channel_name;
+  if (!rtc::GetStringFromJsonObject(json_data, "channel_name", &channel_name)) return;
+  callback_->OnDeleteChannel(channel_name);  
+}
 
 } // namespace hotline

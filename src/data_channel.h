@@ -26,6 +26,7 @@ struct HotlineDataChannelObserver{
   virtual void OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel) = 0;
 
   virtual void OnCreateChannel(rtc::SocketAddress& remote_address, cricket::ProtocolType protocol) = 0;
+  virtual void OnDeleteChannel(std::string& channel_name) = 0;
   virtual void OnChannelCreated() = 0;
   virtual void OnServerSideReady(std::string& channel_name) = 0;
 
@@ -51,6 +52,7 @@ public:
   void RegisterObserver(HotlineDataChannelObserver* callback);
   bool AttachSocket(SocketConnection* socket);
   SocketConnection* DetachSocket();
+  SocketConnection* GetAttachedSocket();
   void SetSocketReady();
   void SocketReadEvent();
 
@@ -60,6 +62,8 @@ public:
   std::string label() { return channel_->label(); }
   bool local(){return is_local_;}
   bool controlchannel(){return is_control_channel_;}
+  bool closed_by_remote(){return closed_by_remote_;}
+  void closed_by_remote(bool closed_by_remote) { closed_by_remote_ = closed_by_remote;}
 
   bool IsOpen() const { return state_ == webrtc::DataChannelInterface::kOpen; }
 
@@ -74,7 +78,7 @@ protected:
   HotlineDataChannelObserver* callback_;
   bool is_local_;
   bool is_control_channel_;
-
+  bool closed_by_remote_; //: TODO: Remove this variable and really close data channel
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -85,6 +89,7 @@ class HotlineControlDataChannel
 public:
   enum MSGID {
     MsgCreateChannel,
+    MsgDeleteChannel,
     MsgChannelCreated,
     MsgServerSideReady
   };
@@ -95,6 +100,7 @@ public:
   virtual ~HotlineControlDataChannel() {}
 
   bool CreateChannel(std::string& remote_address, cricket::ProtocolType protocol);
+  bool DeleteRemoteChannel(std::string& channel_name);
   bool ChannelCreated();
   bool ServerSideReady(std::string& channel_name);
 
@@ -104,6 +110,7 @@ protected:
 
 private:
   void OnCreateChannel(Json::Value& json_data);
+  void OnDeleteRemoteChannel(Json::Value& json_data);
   void OnChannelCreated(Json::Value& json_data);
   void OnServerSideReady(Json::Value& json_data);
 

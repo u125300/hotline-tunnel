@@ -105,7 +105,8 @@ void Conductors::OnPeerConnected(uint64 peer_id) {
                     room_id_,
                     id_,
                     peer_id,
-                    signal_client_);
+                    signal_client_,
+                    signal_thread_);
 
   //
   // Offerer
@@ -123,7 +124,9 @@ void Conductors::OnPeerConnected(uint64 peer_id) {
                     room_id_,
                     id_,
                     peer_id,
-                    signal_client_);
+                    signal_client_,
+                    signal_thread_
+                    );
 
   // ConnectToPeer if offerer
   conductor_offer->ConnectToPeer();

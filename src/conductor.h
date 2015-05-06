@@ -23,7 +23,8 @@ class Conductor
   : public webrtc::PeerConnectionObserver,
     public webrtc::CreateSessionDescriptionObserver,
     public HotlineDataChannelObserver,
-    public SocketObserver {
+    public SocketObserver,
+    public rtc::MessageHandler {
  public:
   enum CallbackID {
     MEDIA_CHANNELS_INITIALIZED = 1,
@@ -31,6 +32,10 @@ class Conductor
     SEND_MESSAGE_TO_PEER,
     NEW_STREAM_ADDED,
     STREAM_REMOVED,
+  };
+
+  enum ThreadMsgId{
+    MsgStopLane
   };
 
   Conductor::Conductor();
@@ -43,14 +48,15 @@ class Conductor
                         std::string room_id,
                         uint64 local_peer_id,
                         uint64 remote_peer_id,
-                        SignalServerConnection* signal_client
+                        SignalServerConnection* signal_client,
+                        rtc::Thread* signal_thread
                         );
 
   bool connection_active() const;
   void ConnectToPeer();
   virtual void OnReceivedOffer(Json::Value& data);
   virtual void Close();
-
+  
  protected:
    class ChannelDescription{
    public:
@@ -67,6 +73,22 @@ class Conductor
      rtc::SocketAddress remote_address_;
      cricket::ProtocolType protocol_;
   };
+
+  struct LaneMessageData : public rtc::MessageData {
+  public:
+    LaneMessageData(SocketConnection* socket_connection, HotlineDataChannel* data_channel) {
+      socket_connection_ = socket_connection;
+      data_channel_ = data_channel;
+    }
+
+    SocketConnection* socket_connection() { return socket_connection_;}
+    HotlineDataChannel* data_channel() { return data_channel_; }
+
+  private:
+    SocketConnection* socket_connection_;
+    HotlineDataChannel* data_channel_;
+  };
+
   
   bool InitializePeerConnection();
   bool ReinitializePeerConnectionForLoopback();
@@ -74,6 +96,12 @@ class Conductor
   void DeletePeerConnection();
   bool AddControlDataChannel();
   bool AddPacketDataChannel(std::string* channel_name);
+
+  // create client socket + data channel + server socket connection
+  bool CreateConnectionLane();
+  // delete client socket + data channel + server socket connection
+  void DeleteConnectionLane(SocketConnection* connection, rtc::scoped_refptr<HotlineDataChannel> channel);
+
 
   //
   // PeerConnectionObserver implementation.
@@ -95,6 +123,7 @@ class Conductor
   virtual void OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> channel);
   virtual void OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel);
   virtual void OnCreateChannel(rtc::SocketAddress& remote_address, cricket::ProtocolType protocol);
+  virtual void OnDeleteChannel(std::string& channel_name);
   virtual void OnChannelCreated();
   virtual void OnServerSideReady(std::string& channel_name);
 
@@ -103,6 +132,7 @@ class Conductor
   //
   virtual void OnSocketOpen(SocketConnection* socket);
   virtual void OnSocketClosed(SocketConnection* socket);
+  virtual void OnSocketStop(SocketConnection* socket);
 
 
   //
@@ -111,6 +141,10 @@ class Conductor
   virtual void OnSuccess(webrtc::SessionDescriptionInterface* desc);
   virtual void OnFailure(const std::string& error);
 
+  //
+  // implements the MessageHandler interface
+  //
+  void OnMessage(rtc::Message* msg);
 
 
   // Send a message to the remote peer.
@@ -140,6 +174,7 @@ class Conductor
   std::string room_id_;
   cricket::ProtocolType protocol_;
 
+  rtc::Thread* signal_thread_;
   ChannelDescription channel_;
 };
 
