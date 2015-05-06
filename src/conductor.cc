@@ -267,28 +267,12 @@ void Conductor::OnControlDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel
 
 void Conductor::OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> channel) {
   if (server_mode_){
-    if (channel==NULL) return;
-
-    SocketConnection* connection = socket_client_.Connect(channel_.remote_address(), channel_.protocol());
-    if (connection==NULL) {
-      channel->Stop();
-      return;
-    }
-
-    channel->AttachSocket(connection);
-    connection->AttachChannel(channel);
-    connection->SetReady();
-    local_control_datachannel_->ServerSideReady(channel->label());
-
-  }
-  else {
-
+    CreateConnectionLane(channel);
   }
 }
 
 void Conductor::OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel) {
   SocketConnection* socket = channel->DetachSocket();
-
 }
 
 void Conductor::OnCreateChannel(rtc::SocketAddress& remote_address, cricket::ProtocolType protocol){
@@ -329,18 +313,8 @@ void Conductor::OnServerSideReady(std::string& channel_name) {
 //
 
 void Conductor::OnSocketOpen(SocketConnection* socket){
-  if (server_mode_){
-
-  }
-  else{
-    std::string channel_name;
-    if (!AddPacketDataChannel(&channel_name)) return;
-
-    rtc::scoped_refptr<HotlineDataChannel> channel = datachannels_[channel_name];
-    if (channel==NULL) return;
-
-    channel->AttachSocket(socket);
-    socket->AttachChannel(channel);
+  if (!server_mode_){
+    CreateConnectionLane(socket);
   }
 }
   
@@ -673,7 +647,32 @@ bool Conductor::AddPacketDataChannel(std::string* channel_name) {
 
 
 // create client socket + data channel + server socket connection
-bool Conductor::CreateConnectionLane() {
+bool Conductor::CreateConnectionLane(SocketConnection* connection) {
+  std::string channel_name;
+  if (!AddPacketDataChannel(&channel_name)) return false;
+
+  rtc::scoped_refptr<HotlineDataChannel> channel = datachannels_[channel_name];
+  if (channel==NULL) return false;
+
+  channel->AttachSocket(connection);
+  connection->AttachChannel(channel);
+
+  return true;
+}
+
+bool Conductor::CreateConnectionLane(rtc::scoped_refptr<HotlineDataChannel> channel) {
+  if (channel==NULL) return false;
+
+  SocketConnection* connection = socket_client_.Connect(channel_.remote_address(), channel_.protocol());
+  if (connection==NULL) {
+    channel->Stop();
+    return false;
+  }
+
+  channel->AttachSocket(connection);
+  connection->AttachChannel(channel);
+  connection->SetReady();
+  local_control_datachannel_->ServerSideReady(channel->label());
 
   return true;
 }
