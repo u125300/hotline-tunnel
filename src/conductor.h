@@ -98,7 +98,8 @@ class Conductor
   bool AddPacketDataChannel(std::string* channel_name);
 
   // create client socket + data channel + server socket connection
-  bool CreateConnectionLane();
+  bool CreateConnectionLane(SocketConnection* connection);
+  bool CreateConnectionLane(rtc::scoped_refptr<HotlineDataChannel> channel);
   // delete client socket + data channel + server socket connection
   void DeleteConnectionLane(SocketConnection* connection, rtc::scoped_refptr<HotlineDataChannel> channel);
 
