@@ -271,7 +271,7 @@ void Conductor::OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> c
 
     SocketConnection* connection = socket_client_.Connect(channel_.remote_address(), channel_.protocol());
     if (connection==NULL) {
-      channel->Close();
+      channel->Stop();
       return;
     }
 
@@ -289,8 +289,6 @@ void Conductor::OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> c
 void Conductor::OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel) {
   SocketConnection* socket = channel->DetachSocket();
 
-  datachannels_.erase(channel->label());
-  if (socket) socket->Close();
 }
 
 void Conductor::OnCreateChannel(rtc::SocketAddress& remote_address, cricket::ProtocolType protocol){
@@ -298,7 +296,8 @@ void Conductor::OnCreateChannel(rtc::SocketAddress& remote_address, cricket::Pro
   channel_.Set(remote_address, protocol);
 }
 
-void Conductor::OnDeleteChannel(std::string& channel_name) {
+
+void Conductor::OnStopChannel(std::string& channel_name) {
   LaneMessageData* msgdata = NULL;
   rtc::scoped_refptr<HotlineDataChannel> channel = datachannels_[channel_name];
   if (channel==NULL) return;
@@ -307,6 +306,8 @@ void Conductor::OnDeleteChannel(std::string& channel_name) {
   msgdata = new LaneMessageData(NULL, channel);
   signal_thread_->Post(this, MsgStopLane, msgdata);
 }
+
+
 
 void Conductor::OnChannelCreated() {
   ASSERT(!server_mode_);
@@ -700,16 +701,17 @@ void Conductor::DeleteConnectionLane(SocketConnection* connection, rtc::scoped_r
   }
 
   // TODO: Remote comment if datachannel bug on webrtc resolved.
-  // Send remote peer to delete socket
-
-  // Delete datachannel
-  //:if (channel) {
-  //:    datachannels_.erase(channel->label());
-  //:}
-
+  // Send messagt to remote peer that delete socket.
   if (!channel->closed_by_remote()) {
     local_control_datachannel_->DeleteRemoteChannel(channel_name);
   }
+
+  // Delete datachannel
+  if (channel) {
+  //:  channel->Close();
+  //:  datachannels_.erase(channel_name);
+  }
+
 }
 
 

@@ -26,7 +26,7 @@ struct HotlineDataChannelObserver{
   virtual void OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel) = 0;
 
   virtual void OnCreateChannel(rtc::SocketAddress& remote_address, cricket::ProtocolType protocol) = 0;
-  virtual void OnDeleteChannel(std::string& channel_name) = 0;
+  virtual void OnStopChannel(std::string& channel_name) = 0;
   virtual void OnChannelCreated() = 0;
   virtual void OnServerSideReady(std::string& channel_name) = 0;
 
@@ -58,6 +58,7 @@ public:
 
   bool Send(char* buf, size_t len);
   void Close();
+  void Stop();
 
   std::string label() { return channel_->label(); }
   bool local(){return is_local_;}

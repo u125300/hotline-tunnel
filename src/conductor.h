@@ -123,7 +123,7 @@ class Conductor
   virtual void OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> channel);
   virtual void OnSocketDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel);
   virtual void OnCreateChannel(rtc::SocketAddress& remote_address, cricket::ProtocolType protocol);
-  virtual void OnDeleteChannel(std::string& channel_name);
+  virtual void OnStopChannel(std::string& channel_name);
   virtual void OnChannelCreated();
   virtual void OnServerSideReady(std::string& channel_name);
 

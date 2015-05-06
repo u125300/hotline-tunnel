@@ -91,11 +91,11 @@ bool HotlineDataChannel::Send(char* buf, size_t len) {
 }
 
 void HotlineDataChannel::Close() {
+  channel_->Close();
+}
 
-  DetachSocket();
-
-  // TODO: fix channel closing bug.
-  // channel_->Close();
+void HotlineDataChannel::Stop() {
+  callback_->OnStopChannel(label());
 }
 
 
@@ -258,7 +258,7 @@ bool HotlineControlDataChannel::DeleteRemoteChannel(std::string& channel_name) {
 void HotlineControlDataChannel::OnDeleteRemoteChannel(Json::Value& json_data) {
   std::string channel_name;
   if (!rtc::GetStringFromJsonObject(json_data, "channel_name", &channel_name)) return;
-  callback_->OnDeleteChannel(channel_name);  
+  callback_->OnStopChannel(channel_name);  
 }
 
 } // namespace hotline
