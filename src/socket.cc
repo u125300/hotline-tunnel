@@ -70,8 +70,8 @@ void SocketConnection::PacketQueue::Swap(PacketQueue* other) {
 // SocketConnection
 ///////////////////////////////////////////////////////////////////////////////
 
-SocketConnection::SocketConnection(SocketBase* server)
-  : server_(server)
+SocketConnection::SocketConnection(SocketBase* socket_base)
+  : socket_base_(socket_base)
   , stream_(NULL)
   , closing_(false)
   , is_ready_(false)
@@ -185,7 +185,7 @@ void SocketConnection::Close() {
 
 
 void SocketConnection::Stop() {
-  server_->Stop(this);
+  socket_base_->Stop(this);
 }
 
 
@@ -193,8 +193,8 @@ void SocketConnection::HandleStreamClose(){
   if (closing_) return;
   closing_ = true;
 
-  if (server_) {
-    server_->Remove(this);
+  if (socket_base_) {
+    socket_base_->Remove(this);
   }
 }
 

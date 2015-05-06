@@ -84,7 +84,7 @@ class SocketConnection : public sigslot::has_slots<> {
   bool QueueSendDataMessage(const webrtc::DataBuffer& buffer);
   void SendQueuedDataMessages();
 
-  SocketBase* server_;
+  SocketBase* socket_base_;
   rtc::scoped_refptr<HotlineDataChannel> channel_;
   rtc::StreamInterface* stream_;
   uint64 peer_id_;
