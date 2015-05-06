@@ -1,5 +1,5 @@
-#ifndef TALK_EXAMPLES_PEERCONNECTION_CLIENT_FLAGDEFS_H_
-#define TALK_EXAMPLES_PEERCONNECTION_CLIENT_FLAGDEFS_H_
+#ifndef HOTLINE_TUNNEL_FLAGDEFS_H_
+#define HOTLINE_TUNNEL_FLAGDEFS_H_
 #pragma once
 
 #include "htn_config.h"
@@ -18,4 +18,4 @@ DEFINE_string(r, "", "Room id");
 DEFINE_bool(udp, false, "UDP mode");
 
 
-#endif  // TALK_EXAMPLES_PEERCONNECTION_CLIENT_FLAGDEFS_H_
+#endif  // HOTLINE_TUNNEL_FLAGDEFS_H_

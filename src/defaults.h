@@ -1,5 +1,5 @@
-#ifndef PEERCONNECTION_SAMPLES_CLIENT_DEFAULTS_H_
-#define PEERCONNECTION_SAMPLES_CLIENT_DEFAULTS_H_
+#ifndef HOTLINE_TUNNEL_DEFAULTS_H_
+#define HOTLINE_TUNNEL_DEFAULTS_H_
 #pragma once
 
 #include "htn_config.h"
@@ -22,4 +22,4 @@ std::string GetPeerConnectionString();
 std::string GetDefaultServerName();
 std::string GetPeerName();
 
-#endif  // PEERCONNECTION_SAMPLES_CLIENT_DEFAULTS_H_
+#endif  // HOTLINE_TUNNEL_DEFAULTS_H_
