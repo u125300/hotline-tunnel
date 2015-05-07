@@ -26,14 +26,6 @@ class Conductor
     public SocketObserver,
     public rtc::MessageHandler {
  public:
-  enum CallbackID {
-    MEDIA_CHANNELS_INITIALIZED = 1,
-    PEER_CONNECTION_CLOSED,
-    SEND_MESSAGE_TO_PEER,
-    NEW_STREAM_ADDED,
-    STREAM_REMOVED,
-  };
-
   enum ThreadMsgId{
     MsgStopLane
   };
@@ -135,7 +127,6 @@ class Conductor
   virtual void OnSocketClosed(SocketConnection* socket);
   virtual void OnSocketStop(SocketConnection* socket);
 
-
   //
   // CreateSessionDescriptionObserver implementation.
   //
@@ -148,8 +139,9 @@ class Conductor
   void OnMessage(rtc::Message* msg);
 
 
-  // Send a message to the remote peer.
-  //:void SendMessage(const std::string& json_object);
+  //
+  // Local variables
+  //
 
   uint64 local_peer_id_;
   uint64 remote_peer_id_;

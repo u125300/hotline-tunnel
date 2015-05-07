@@ -27,12 +27,12 @@ const char kSessionDescriptionSdpName[] = "sdp";
 #define DTLS_ON  true
 #define DTLS_OFF false
 
-class DummySetSessionDescriptionObserver
+class HotlineSetSessionDescriptionObserver
     : public webrtc::SetSessionDescriptionObserver {
  public:
-  static DummySetSessionDescriptionObserver* Create() {
+  static HotlineSetSessionDescriptionObserver* Create() {
     return
-        new rtc::RefCountedObject<DummySetSessionDescriptionObserver>();
+        new rtc::RefCountedObject<HotlineSetSessionDescriptionObserver>();
   }
   virtual void OnSuccess() {
     LOG(INFO) << __FUNCTION__;
@@ -42,8 +42,8 @@ class DummySetSessionDescriptionObserver
   }
 
  protected:
-  DummySetSessionDescriptionObserver() {}
-  ~DummySetSessionDescriptionObserver() {}
+  HotlineSetSessionDescriptionObserver() {}
+  ~HotlineSetSessionDescriptionObserver() {}
 };
 
 
@@ -805,7 +805,7 @@ void Conductor::UIThreadCallback(int msg_id, void* data) {
 
 void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc) {
   peer_connection_->SetLocalDescription(
-      DummySetSessionDescriptionObserver::Create(), desc);
+      HotlineSetSessionDescriptionObserver::Create(), desc);
 
   std::string sdp;
   desc->ToString(&sdp);
@@ -816,7 +816,7 @@ void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc) {
     webrtc::SessionDescriptionInterface* session_description(
         webrtc::CreateSessionDescription("answer", sdp));
     peer_connection_->SetRemoteDescription(
-        DummySetSessionDescriptionObserver::Create(), session_description);
+        HotlineSetSessionDescriptionObserver::Create(), session_description);
     return;
   }
 
@@ -906,7 +906,7 @@ void Conductor::OnReceivedOffer(Json::Value& data) {
 
 //:    LOG(INFO) << " Received session description :" << message;
     peer_connection_->SetRemoteDescription(
-        DummySetSessionDescriptionObserver::Create(), session_description);
+        HotlineSetSessionDescriptionObserver::Create(), session_description);
 
     if (session_description->type() ==
         webrtc::SessionDescriptionInterface::kOffer) {
