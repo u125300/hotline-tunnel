@@ -59,7 +59,7 @@ Conductor::Conductor()
 }
 
 Conductor::~Conductor() {
-  ASSERT(peer_connection_.get() == NULL);
+  Close();
 }
 
 void Conductor::Init(bool server_mode,
@@ -88,7 +88,6 @@ bool Conductor::connection_active() const {
 }
 
 void Conductor::Close() {
-  //:client_->SignOut();
   DeletePeerConnection();
 }
 
@@ -142,6 +141,10 @@ bool Conductor::CreatePeerConnection(bool dtls) {
     constraints.AddOptional(webrtc::MediaConstraintsInterface::kEnableDtlsSrtp,
                             "true");
   }
+  else {
+    constraints.AddOptional(webrtc::MediaConstraintsInterface::kEnableDtlsSrtp,
+                            "false");
+  }
 
   peer_connection_ =
       peer_connection_factory_->CreatePeerConnection(servers,
@@ -153,8 +156,11 @@ bool Conductor::CreatePeerConnection(bool dtls) {
 }
 
 void Conductor::DeletePeerConnection() {
-  peer_connection_ = NULL;
   datachannels_.clear();
+  local_control_datachannel_ = NULL;
+  remote_control_datachannel_ = NULL;
+
+  peer_connection_ = NULL;
   peer_connection_factory_ = NULL;
   local_peer_id_ = 0;
   remote_peer_id_ = 0;

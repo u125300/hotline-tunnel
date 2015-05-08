@@ -46,7 +46,7 @@ uint64 Conductors::id_from_string(std::string id_string) {
 
 
 void Conductors::Close() {
-  //:client_->SignOut();
+  //:signal_client_->SignOut();
   // TODO: Delete all peers
 }
 
