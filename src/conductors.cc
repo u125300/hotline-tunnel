@@ -133,6 +133,13 @@ void Conductors::OnPeerConnected(uint64 peer_id) {
 
 }
 
+void Conductors::OnPeerDisconnected(uint64 peer_id) {
+  LOG(LS_INFO) << "Peer " << std::to_string(peer_id) << " disconnected.";
+
+  peers_offer_.erase(peer_id);
+  peers_answer_.erase(peer_id);
+}
+
 void Conductors::OnReceivedOffer(Json::Value& data) {
 
   std::string peer_id;

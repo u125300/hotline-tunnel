@@ -22,6 +22,7 @@ struct SignalServerConnectionObserver {
   virtual void OnCreatedRoom(std::string& room_id) = 0;
   virtual void OnSignedIn(std::string& room_id, uint64 peer_id) = 0;
   virtual void OnPeerConnected(uint64 peer_id) = 0;
+  virtual void OnPeerDisconnected(uint64 peer_id) = 0;
   virtual void OnReceivedOffer(Json::Value& data) = 0;
   virtual void OnServerConnectionFailure() = 0;
 
@@ -39,9 +40,11 @@ public:
   enum MsgID {
     MsgCreateRoom        = 1,
     MsgSignIn            = 2,
-    MsgPeerConnected     = 3,
-    MsgSendOffer         = 4,
-    MsgReceivedOffer     = 5
+    MsgSignOut           = 3,
+    MsgPeerConnected     = 4,
+    MsgPeerDisconnected  = 5,
+    MsgSendOffer         = 6,
+    MsgReceivedOffer     = 7
   };
 
   enum ThreadMsgId{
@@ -69,6 +72,8 @@ public:
   void Connect(const std::string& url);
   void CreateRoom(const std::string& password);
   void SignIn(std::string& room_id, std::string& password);
+  void SignOut(std::string& room_id);
+
 
   void RegisterObserver(SignalServerConnectionObserver* callback);
   void UnregisterObserver(SignalServerConnectionObserver* callback);
@@ -89,6 +94,7 @@ protected:
   virtual void OnCreatedRoom(Json::Value& data);
   virtual void OnSignedIn(Json::Value& data);
   virtual void OnPeerConnected(Json::Value& data);
+  virtual void OnPeerDisconnected(Json::Value& data);
   virtual void OnReceivedOffer(Json::Value& data);
 
 

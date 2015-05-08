@@ -56,6 +56,13 @@ void SignalServerConnection::SignIn(std::string& room_id, std::string& password)
   Send(MsgSignIn, jdata);
 }
 
+void SignalServerConnection::SignOut(std::string& room_id) {
+  Json::Value jdata;
+
+  jdata["room_id"] = room_id;
+
+  Send(MsgSignOut, jdata);
+}
 
 void SignalServerConnection::RegisterObserver(SignalServerConnectionObserver* callback) {
   ASSERT(callback_ == NULL);
@@ -94,6 +101,9 @@ void SignalServerConnection::OnMessage(rtc::Message* msg) {
        break;
       case MsgPeerConnected:
         OnPeerConnected(server_msg->data());
+        break;
+      case MsgPeerDisconnected:
+        OnPeerDisconnected(server_msg->data());
         break;
       case MsgReceivedOffer:
         OnReceivedOffer(server_msg->data());
@@ -210,6 +220,22 @@ void SignalServerConnection::OnPeerConnected(Json::Value& data) {
   
   if (callback_) {
     callback_->OnPeerConnected(npeer_id);
+  }
+}
+
+void SignalServerConnection::OnPeerDisconnected(Json::Value& data) {
+  std::string peer_id;
+  uint64 npeer_id;
+
+  if(!rtc::GetStringFromJsonObject(data, "peer_id", &peer_id)) {
+    LOG(LS_WARNING) << "Invalid message format";
+    return;
+  }
+
+  npeer_id = strtoull(peer_id.c_str(), NULL, 10);
+  
+  if (callback_) {
+    callback_->OnPeerDisconnected(npeer_id);
   }
 }
 

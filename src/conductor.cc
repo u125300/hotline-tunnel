@@ -156,6 +156,7 @@ void Conductor::DeletePeerConnection() {
   peer_connection_ = NULL;
   datachannels_.clear();
   peer_connection_factory_ = NULL;
+  local_peer_id_ = 0;
   remote_peer_id_ = 0;
   loopback_ = false;
 }
@@ -170,15 +171,11 @@ void Conductor::OnAddStream(webrtc::MediaStreamInterface* stream) {
   LOG(INFO) << __FUNCTION__ << " " << stream->label();
 
   stream->AddRef();
-  //:main_wnd_->QueueUIThreadCallback(NEW_STREAM_ADDED,
-  //:                                 stream);
 }
 
 void Conductor::OnRemoveStream(webrtc::MediaStreamInterface* stream) {
   LOG(INFO) << __FUNCTION__ << " " << stream->label();
   stream->AddRef();
-  //:main_wnd_->QueueUIThreadCallback(STREAM_REMOVED,
-  //:                                 stream);
 }
 
 // Remote peer created data channel.
