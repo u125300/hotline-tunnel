@@ -33,5 +33,5 @@ std::string GetPeerConnectionString() {
 }
 
 std::string GetSignalServerName() {
-  return GetEnvVarOrDefault("HOTLINE_SIGNAL_SERVER", "ws://127.0.0.1:8888");
+  return GetEnvVarOrDefault("HOTLINE_SIGNAL_SERVER", "ws://127.0.0.1:9000");
 }
