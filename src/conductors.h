@@ -52,8 +52,6 @@ class Conductors
 
  protected:
 
-  void ConnectToPeer(uint64 peer_id);
-
   //
   // SignalServerConnectionObserver implementation.
   //
@@ -71,18 +69,9 @@ class Conductors
   // implements the MessageHandler interface
   //
   void OnMessage(rtc::Message* msg);
-
-
   void OnClose();
 
-  // Send a message to the remote peer.
-  void SendMessage(const std::string& json_object);
-
-  //:uint64 peer_id_;
-  rtc::scoped_refptr<webrtc::PeerConnectionFactoryInterface>
-      peer_connection_factory_;
   SignalServerConnection* signal_client_;
-  std::deque<std::string*> pending_messages_;
 
   bool server_mode_;
   rtc::SocketAddress local_address_;

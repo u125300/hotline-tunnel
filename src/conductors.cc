@@ -13,8 +13,7 @@ namespace hotline {
 Conductors::Conductors(SignalServerConnection* signal_client,
                      rtc::Thread* signal_thread,
                      UserArguments& arguments)
-  : //:peer_id_(0),
-    id_(0),
+  : id_(0),
     signal_client_(signal_client),
     signal_thread_(signal_thread),
     server_mode_(arguments.server_mode),
@@ -189,16 +188,5 @@ void Conductors::OnClose() {
   signal_client_->UnregisterObserver(this);
 }
 
-void Conductors::ConnectToPeer(uint64 peer_id) {
-
-}
-
-
-/*
-void Conductor::SendMessage(const std::string& json_object) {
-  std::string* msg = new std::string(json_object);
-  //:main_wnd_->QueueUIThreadCallback(SEND_MESSAGE_TO_PEER, msg);
-}
-*/
 
 } // namespace hotline
