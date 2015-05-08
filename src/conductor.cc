@@ -323,10 +323,6 @@ void Conductor::OnSocketOpen(SocketConnection* socket){
   
 void Conductor::OnSocketClosed(SocketConnection* socket){
   socket->DetachChannel();
-//:  rtc::scoped_refptr<HotlineDataChannel> channel = socket->DetachChannel();
-//:  if (channel) {
-//:      channel->Close();
-//:  }
 }
 
 void Conductor::OnSocketStop(SocketConnection* socket) {
@@ -334,235 +330,6 @@ void Conductor::OnSocketStop(SocketConnection* socket) {
   msgdata = new LaneMessageData(socket, NULL);
   signal_thread_->Post(this, MsgStopLane, msgdata);
 }
-
-
-
-//:
-/*
-//
-// SignalServerConnectionObserver implementation.
-//
-
-void Conductor::OnSignedIn() {
-  LOG(INFO) << __FUNCTION__;
-  //:main_wnd_->SwitchToPeerList(client_->peers());
-}
-
-void Conductor::OnDisconnected() {
-  LOG(INFO) << __FUNCTION__;
-
-  DeletePeerConnection();
-
-  //:if (main_wnd_->IsWindow())
-  //:  main_wnd_->SwitchToConnectUI();
-}
-
-void Conductor::OnPeerConnected(int id, const std::string& name) {
-  LOG(INFO) << __FUNCTION__;
-  // Refresh the list if we're showing it.
-  //:if (main_wnd_->current_ui() == MainWindow::LIST_PEERS)
-  //:  main_wnd_->SwitchToPeerList(client_->peers());
-}
-
-void Conductor::OnPeerDisconnected(int id) {
-  LOG(INFO) << __FUNCTION__;
-  if (id == peer_id_) {
-    LOG(INFO) << "Our peer disconnected";
-    //:main_wnd_->QueueUIThreadCallback(PEER_CONNECTION_CLOSED, NULL);
-  } else {
-    // Refresh the list if we're showing it.
-    //:if (main_wnd_->current_ui() == MainWindow::LIST_PEERS)
-    //:  main_wnd_->SwitchToPeerList(client_->peers());
-  }
-}
-
-void Conductor::OnMessageFromPeer(int peer_id, const std::string& message) {
-  ASSERT(peer_id_ == peer_id || peer_id_ == 0);
-  ASSERT(!message.empty());
-
-  if (!peer_connection_.get()) {
-    ASSERT(peer_id_ == 0);
-    peer_id_ = peer_id;
-
-    if (!InitializePeerConnection()) {
-      LOG(LS_ERROR) << "Failed to initialize our PeerConnection instance";
-      client_->SignOut();
-      return;
-    }
-  } else if (peer_id != peer_id_) {
-    ASSERT(peer_id_ != 0);
-    LOG(WARNING) << "Received a message from unknown peer while already in a "
-                    "conversation with a different peer.";
-    return;
-  }
-
-  Json::Reader reader;
-  Json::Value jmessage;
-  if (!reader.parse(message, jmessage)) {
-    LOG(WARNING) << "Received unknown message. " << message;
-    return;
-  }
-  std::string type;
-  std::string json_object;
-
-  GetStringFromJsonObject(jmessage, kSessionDescriptionTypeName, &type);
-  if (!type.empty()) {
-    if (type == "offer-loopback") {
-      // This is a loopback call.
-      // Recreate the peerconnection with DTLS disabled.
-      if (!ReinitializePeerConnectionForLoopback()) {
-        LOG(LS_ERROR) << "Failed to initialize our PeerConnection instance";
-        DeletePeerConnection();
-        client_->SignOut();
-      }
-      return;
-    }
-
-    std::string sdp;
-    if (!GetStringFromJsonObject(jmessage, kSessionDescriptionSdpName, &sdp)) {
-      LOG(WARNING) << "Can't parse received session description message.";
-      return;
-    }
-    webrtc::SessionDescriptionInterface* session_description(
-        webrtc::CreateSessionDescription(type, sdp));
-    if (!session_description) {
-      LOG(WARNING) << "Can't parse received session description message.";
-      return;
-    }
-    LOG(INFO) << " Received session description :" << message;
-    peer_connection_->SetRemoteDescription(
-        DummySetSessionDescriptionObserver::Create(), session_description);
-    if (session_description->type() ==
-        webrtc::SessionDescriptionInterface::kOffer) {
-      peer_connection_->CreateAnswer(this, NULL);
-    }
-    return;
-  } else {
-    std::string sdp_mid;
-    int sdp_mlineindex = 0;
-    std::string sdp;
-    if (!GetStringFromJsonObject(jmessage, kCandidateSdpMidName, &sdp_mid) ||
-        !GetIntFromJsonObject(jmessage, kCandidateSdpMlineIndexName,
-                              &sdp_mlineindex) ||
-        !GetStringFromJsonObject(jmessage, kCandidateSdpName, &sdp)) {
-      LOG(WARNING) << "Can't parse received message.";
-      return;
-    }
-    rtc::scoped_ptr<webrtc::IceCandidateInterface> candidate(
-        webrtc::CreateIceCandidate(sdp_mid, sdp_mlineindex, sdp));
-    if (!candidate.get()) {
-      LOG(WARNING) << "Can't parse received candidate message.";
-      return;
-    }
-    if (!peer_connection_->AddIceCandidate(candidate.get())) {
-      LOG(WARNING) << "Failed to apply the received candidate";
-      return;
-    }
-    LOG(INFO) << " Received candidate :" << message;
-    return;
-  }
-}
-
-void Conductor::OnMessageSent(int err) {
-  // Process the next pending message if any.
-  //:main_wnd_->QueueUIThreadCallback(SEND_MESSAGE_TO_PEER, NULL);
-}
-
-void Conductor::OnServerConnectionFailure() {
-  //:main_wnd_->MessageBox("Error", ("Failed to connect to " + server_).c_str(),
-  //:                        true);
-}
-
-*/
-
-
-
-/*
-void Conductor::OnConnected() {
-  if (server_mode_) {
-    signal_client_->CreateRoom(password_);
-  }
-  else {
-    signal_client_->SignIn(room_id_, password_);
-  }
-}
-
-void Conductor::OnCreatedRoom(std::string& room_id) {
-  ASSERT(server_mode_);
-
-  room_id_ = room_id;
-  printf("Your room id is %s\n", room_id.c_str());
-
-  signal_client_->SignIn(room_id_, password_);
-} 
-
-void Conductor::OnSignedIn(std::string& room_id, uint64 peer_id) {
-
-  if (server_mode_) {
-    ASSERT(room_id_==room_id);
-  }
-
-  room_id_ = room_id;
-  id_ = peer_id;
-}
-
-
-
-void Conductor::OnMessageFromPeer() {
-
-}
-
-void Conductor::OnMessageSent() {
-
-}
-
-void Conductor::OnDisconnected() {
-
-}
-
-void Conductor::OnServerConnectionFailure() {
-
-  if (!server_mode_) {
-    rtc::ThreadManager::Instance()->CurrentThread()->Stop();
-  }
-}
-*/
-
-//
-// MainWndCallback implementation.
-//
-
-//:
-/*
-void Conductor::StartLogin(const std::string& server, int port) {
-  if (client_->is_connected())
-    return;
-  server_ = server;
-  client_->Connect(server, port, GetPeerName());
-}
-
-void Conductor::DisconnectFromServer() {
-  if (client_->is_connected())
-    client_->SignOut();
-}
-
-void Conductor::ConnectToPeer(int peer_id) {
-  ASSERT(peer_id_ == 0);
-  ASSERT(peer_id != 0);
-
-  if (peer_connection_.get()) {
-    printf("Error: We only support connecting to one peer at a time\n");
-    return;
-  }
-
-  if (InitializePeerConnection()) {
-    peer_id_ = peer_id;
-    peer_connection_->CreateOffer(this, NULL);
-  } else {
-    printf("Error: Failed to initialize PeerConnection\n");
-  }
-}
-*/
 
 void Conductor::ConnectToPeer() {
 
@@ -717,95 +484,6 @@ void Conductor::DeleteConnectionLane(SocketConnection* connection, rtc::scoped_r
 }
 
 
-//:
-/*
-void Conductor::DisconnectFromCurrentPeer() {
-  LOG(INFO) << __FUNCTION__;
-  if (peer_connection_.get()) {
-    client_->SendHangUp(peer_id_);
-    DeletePeerConnection();
-  }
-
-  //:if (main_wnd_->IsWindow())
-  //:  main_wnd_->SwitchToPeerList(client_->peers());
-}
-
-void Conductor::UIThreadCallback(int msg_id, void* data) {
-  switch (msg_id) {
-    case PEER_CONNECTION_CLOSED:
-      LOG(INFO) << "PEER_CONNECTION_CLOSED";
-      DeletePeerConnection();
-
-      ASSERT(datachannels_.empty());
-
-      //:if (main_wnd_->IsWindow()) {
-      //:  if (client_->is_connected()) {
-      //:    main_wnd_->SwitchToPeerList(client_->peers());
-      //:  } else {
-      //:    main_wnd_->SwitchToConnectUI();
-      //:  }
-      //:} else {
-      //:  DisconnectFromServer();
-      //:}
-      break;
-
-    case SEND_MESSAGE_TO_PEER: {
-      LOG(INFO) << "SEND_MESSAGE_TO_PEER";
-      std::string* msg = reinterpret_cast<std::string*>(data);
-      if (msg) {
-        // For convenience, we always run the message through the queue.
-        // This way we can be sure that messages are sent to the server
-        // in the same order they were signaled without much hassle.
-        pending_messages_.push_back(msg);
-      }
-
-      if (!pending_messages_.empty() && !client_->IsSendingMessage()) {
-        msg = pending_messages_.front();
-        pending_messages_.pop_front();
-
-        if (!client_->SendToPeer(peer_id_, *msg) && peer_id_ != 0) {
-          LOG(LS_ERROR) << "SendToPeer failed";
-          DisconnectFromServer();
-        }
-        delete msg;
-      }
-
-      if (!peer_connection_.get())
-        peer_id_ = 0;
-
-      break;
-    }
-
-    case NEW_STREAM_ADDED: {
-      webrtc::MediaStreamInterface* stream =
-          reinterpret_cast<webrtc::MediaStreamInterface*>(
-          data);
-      webrtc::VideoTrackVector tracks = stream->GetVideoTracks();
-      // Only render the first track.
-      if (!tracks.empty()) {
-        webrtc::VideoTrackInterface* track = tracks[0];
-        //:main_wnd_->StartRemoteRenderer(track);
-      }
-      stream->Release();
-      break;
-    }
-
-    case STREAM_REMOVED: {
-      // Remote peer stopped sending a stream.
-      webrtc::MediaStreamInterface* stream =
-          reinterpret_cast<webrtc::MediaStreamInterface*>(
-          data);
-      stream->Release();
-      break;
-    }
-
-    default:
-      ASSERT(false);
-      break;
-  }
-}
-*/
-
 void Conductor::OnSuccess(webrtc::SessionDescriptionInterface* desc) {
   peer_connection_->SetLocalDescription(
       HotlineSetSessionDescriptionObserver::Create(), desc);
@@ -876,7 +554,6 @@ void Conductor::OnReceivedOffer(Json::Value& data) {
       return;
     }
   } else if (npeer_id != remote_peer_id_) {
-//:    ASSERT(peer_id_ != -1);
     LOG(WARNING) << "Received a message from unknown peer while already in a "
                     "conversation with a different peer.";
     return;
@@ -907,7 +584,6 @@ void Conductor::OnReceivedOffer(Json::Value& data) {
       return;
     }
 
-//:    LOG(INFO) << " Received session description :" << message;
     peer_connection_->SetRemoteDescription(
         HotlineSetSessionDescriptionObserver::Create(), session_description);
 
@@ -937,7 +613,6 @@ void Conductor::OnReceivedOffer(Json::Value& data) {
       LOG(WARNING) << "Failed to apply the received candidate";
       return;
     }
-//:    LOG(INFO) << " Received candidate :" << message;
     return;
   }
 }
