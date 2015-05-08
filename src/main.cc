@@ -71,10 +71,16 @@ int main(int argc, char** argv) {
   arguments.password = FLAG_p;
 
   if (arguments.server_mode) {
-    if (argc != 1) Usage();
+    if (argc != 1) {
+      Usage();
+      return 1;
+    }
   }
   else{
-    if (argc != 3) Usage();
+    if (argc != 3) {
+      Usage();
+      return 1;
+    }
 
     std::string local_port = argv[1];
     std::string remote_port = argv[2];
@@ -159,7 +165,6 @@ void Usage() {
   std::cerr << "options:" << std::endl;
   std::cerr << "         -udp      UDP mode" << std::endl;
   std::cerr << std::endl;
-  exit(1);
 }
 
 
