@@ -12,13 +12,8 @@
 
 #include "webrtc/base/common.h"
 
-const char kAudioLabel[] = "audio_label";
-const char kVideoLabel[] = "video_label";
-const char kStreamLabel[] = "stream_label";
 const char kControlDataLabel[] = "control_label";
-const char kDataPrefixLabel[] = "sckdata_";
 const char kDefaultServerPath[] = "htunnel";
-const uint16 kDefaultServerPort = 8888;
 
 std::string GetEnvVarOrDefault(const char* env_var_name,
                                const char* default_value) {
@@ -34,20 +29,9 @@ std::string GetEnvVarOrDefault(const char* env_var_name,
 }
 
 std::string GetPeerConnectionString() {
-  return GetEnvVarOrDefault("WEBRTC_CONNECT", "stun:stun.l.google.com:19302");
+  return GetEnvVarOrDefault("HOTLINE_WEBRTC_CONNECT", "stun:stun.l.google.com:19302");
 }
 
-std::string GetDefaultServerName() {
-  return GetEnvVarOrDefault("HOTLINE_SERVER", "ws://localhost:9000");
-}
-
-
-std::string GetPeerName() {
-  char computer_name[256];
-  if (gethostname(computer_name, ARRAY_SIZE(computer_name)) != 0)
-    strcpy(computer_name, "host");
-  std::string ret(GetEnvVarOrDefault("USERNAME", "user"));
-  ret += '@';
-  ret += computer_name;
-  return ret;
+std::string GetSignalServerName() {
+  return GetEnvVarOrDefault("HOTLINE_SIGNAL_SERVER", "ws://127.0.0.1:8888");
 }

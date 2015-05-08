@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
 
   hotline::UserArguments arguments;
   
-  arguments.server_mode = FLAG_server;
+  arguments.server_mode = FLAG_s;
   arguments.protocol = FLAG_udp ? cricket::PROTO_UDP : cricket::PROTO_TCP;
   arguments.room_id = FLAG_r;
   arguments.password = FLAG_p;
@@ -114,7 +114,7 @@ int main(int argc, char** argv) {
   // Connect to signal server
   //
 
-  std::string server_url = GetDefaultServerName();
+  std::string server_url = GetSignalServerName();
   if ((server_url.find("ws://") != 0 && server_url.find("wss://") != 0)) {
     return 1;
   }
