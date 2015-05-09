@@ -11,7 +11,8 @@
 // for each platform.
 
 DEFINE_bool(help, false, "Prints this message");
-DEFINE_bool(s, false, "server mode");
+DEFINE_bool(h, false, "Prints this message");
+DEFINE_bool(server, false, "server mode");
 DEFINE_string(p, "", "password");
 DEFINE_string(r, "", "Room id");
 DEFINE_bool(udp, false, "UDP mode");

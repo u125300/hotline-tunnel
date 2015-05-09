@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
   rtc::WindowsCommandLineArguments win_args;
 
   rtc::FlagList::SetFlagsFromCommandLine(&argc, argv, true);
-  if (FLAG_help) {
+  if (FLAG_help || FLAG_h) {
     rtc::FlagList::Print(NULL, false);
     return 1;
   }
@@ -65,7 +65,7 @@ int main(int argc, char** argv) {
 
   hotline::UserArguments arguments;
   
-  arguments.server_mode = FLAG_s;
+  arguments.server_mode = FLAG_server;
   arguments.protocol = FLAG_udp ? cricket::PROTO_UDP : cricket::PROTO_TCP;
   arguments.room_id = FLAG_r;
   arguments.password = FLAG_p;
@@ -158,13 +158,15 @@ bool ReinitializeWinSock() {
 
 // Prints out a usage message then exits.
 void Usage() {
-  std::cerr << "Hotline tunnel: Lightweight peer to peer VPN." << std::endl;
-  std::cerr << "Usage:" << std::endl;
-  std::cerr << "Server side:  htunnel -server [-options]" << std::endl;
-  std::cerr << "Client side:  htunnel -r roomid localport remotehost:port [-options]" << std::endl;
-  std::cerr << "options:" << std::endl;
-  std::cerr << "         -udp      UDP mode" << std::endl;
+  std::cerr << "Hotline tunnel: Mini peer to peer VPN." << std::endl;
   std::cerr << std::endl;
+  std::cerr << "Usage" << std::endl;
+  std::cerr << " Remote peer: htunnel -server [-p password]" << std::endl;
+  std::cerr << " Local  peer: htunnel localport remotehost:port -r roomid [-p password -u udp]" << std::endl;
+  std::cerr << std::endl;
+  std::cerr << "Example" << std::endl;
+  std::cerr << " Remote: htunnel -server -p roompassword" << std::endl;
+  std::cerr << " Local : htunnel 22 127.0.0.1:22 -r 12345 -p roompassword" << std::endl;
 }
 
 
