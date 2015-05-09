@@ -139,14 +139,16 @@ void Conductors::OnPeerConnected(uint64 peer_id) {
 void Conductors::OnPeerDisconnected(uint64 peer_id) {
   LOG(LS_INFO) << "Peer " << std::to_string(peer_id) << " disconnected.";
 
+  peers_offer_.erase(peer_id);
+  peers_answer_.erase(peer_id);
+
   if (server_mode()) {
     std::cout << "Peer disconnected. (peerid: " << std::to_string(peer_id) << ")." << std::endl;
   }
 
-  peers_offer_.erase(peer_id);
-  peers_answer_.erase(peer_id);
-
   if (client_mode()) {
+    std::cout << "Remote peer disconnected." << std::endl;
+
     if (peers_answer_.size() == 0 && peers_offer_.size() == 0) {
       signal_thread_->Post(this, MsgExit);
     }
