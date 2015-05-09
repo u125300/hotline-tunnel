@@ -24,7 +24,7 @@ struct SignalServerConnectionObserver {
   virtual void OnPeerConnected(uint64 peer_id) = 0;
   virtual void OnPeerDisconnected(uint64 peer_id) = 0;
   virtual void OnReceivedOffer(Json::Value& data) = 0;
-  virtual void OnServerConnectionFailure() = 0;
+  virtual void OnServerConnectionFailure(int code, std::string& message) = 0;
 
 protected:
   virtual ~SignalServerConnectionObserver() {}
@@ -49,6 +49,13 @@ public:
 
   enum ThreadMsgId{
     MsgServerMessage
+  };
+
+  enum ServerError {
+    Connected,
+    ConnectionFailed,
+    SigninFailed,
+    CreateRoomFailed
   };
 
   struct ServerMessageData : public rtc::MessageData {
@@ -100,7 +107,7 @@ protected:
 
 private:
   void InitSocketSignals();
-  void ServerConnectionFailure();
+  void ServerConnectionFailure(int code, std::string& message);
 
   //
   // Member variables
@@ -109,6 +116,7 @@ private:
   rtc::scoped_ptr<WebSocket> ws_;
   SignalServerConnectionObserver* callback_;
   rtc::Thread *signal_thread_;
+  std::string url_;
 };
 
 

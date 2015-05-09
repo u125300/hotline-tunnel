@@ -65,7 +65,7 @@ class Conductors
   virtual void OnPeerConnected(uint64 peer_id);
   virtual void OnPeerDisconnected(uint64 peer_id);
   virtual void OnReceivedOffer(Json::Value& data);
-  virtual void OnServerConnectionFailure();
+  virtual void OnServerConnectionFailure(int code, std::string& message);
 
   //
   // implements the MessageHandler interface

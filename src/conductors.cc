@@ -179,9 +179,13 @@ void Conductors::OnDisconnected() {
   std::cout << "Connection to signal server closed." << std::endl;
 }
 
-void Conductors::OnServerConnectionFailure() {
+void Conductors::OnServerConnectionFailure(int code, std::string& message) {
   ASSERT(signal_thread_ != NULL);
-  std::cerr << "Signal server connection error. " << GetSignalServerName() << "." << std::endl;
+
+  if (message.length() > 0) {
+    std::cerr << message << std::endl;//:"Signal server connection error. " << GetSignalServerName() << "." << std::endl;
+  }
+
   signal_thread_->Post(this, MsgExit);
 }
 

@@ -23,6 +23,8 @@ SignalServerConnection::~SignalServerConnection() {
 
 
 void SignalServerConnection::Connect(const std::string& url) {
+  url_ = url;
+
   ws_ = rtc::scoped_ptr<WebSocket>(new WebSocket());
   if (ws_==NULL) {
     LOG(LS_ERROR) << "WebSocket creation failed. ";
@@ -152,23 +154,29 @@ void SignalServerConnection::onClose(WebSocket* ws) {
 
 
 void SignalServerConnection::onError(WebSocket* ws, const WebSocket::ErrorCode& error) {
-  ServerConnectionFailure();
+  std::string message = std::string("Signal server connection error. ") + url_ + std::string(".");
+  ServerConnectionFailure(ConnectionFailed, message);
 }
 
 void SignalServerConnection::OnCreatedRoom(Json::Value& data) {
   bool successful;
   std::string room_id;
 
-  if(!rtc::GetBoolFromJsonObject(data, "successful", &successful)
-      || !rtc::GetStringFromJsonObject(data, "room_id", &room_id)) {
+  if(!rtc::GetBoolFromJsonObject(data, "successful", &successful)) {
     LOG(LS_WARNING) << "Invalid message format";
-    ServerConnectionFailure();
+    ServerConnectionFailure(CreateRoomFailed, std::string("Invalid signal server message format."));
     return;
   }
 
   if (!successful) {
     LOG(LS_WARNING) << "Room creation failed.";
-    ServerConnectionFailure();
+    ServerConnectionFailure(CreateRoomFailed, std::string("Room creation failed by signal server."));
+    return;
+  }
+
+  if(!rtc::GetStringFromJsonObject(data, "room_id", &room_id)) {
+    LOG(LS_WARNING) << "Invalid message format";
+    ServerConnectionFailure(CreateRoomFailed, std::string("Invalid signal server message format."));
     return;
   }
 
@@ -186,17 +194,22 @@ void SignalServerConnection::OnSignedIn(Json::Value& data) {
 
   if(!rtc::GetBoolFromJsonObject(data, "successful", &successful)
       || !rtc::GetStringFromJsonObject(data, "room_id", &room_id)
-      || !rtc::GetStringFromJsonObject(data, "peer_id", &peer_id)
       || !rtc::GetStringFromJsonObject(data, "message", &message)
       ) {
     LOG(LS_WARNING) << "Invalid message format";
-    ServerConnectionFailure();
+    ServerConnectionFailure(SigninFailed, std::string("Invalid signal server message format."));
     return;
   }
 
   if (!successful) {
     LOG(LS_WARNING) << message.c_str();
-    ServerConnectionFailure();
+    ServerConnectionFailure(SigninFailed, message);
+    return;
+  }
+
+  if(!rtc::GetStringFromJsonObject(data, "peer_id", &peer_id)){
+    LOG(LS_WARNING) << "Invalid message format";
+    ServerConnectionFailure(SigninFailed, std::string("Invalid signal server message format."));
     return;
   }
 
@@ -245,9 +258,9 @@ void SignalServerConnection::OnReceivedOffer(Json::Value& data) {
   }
 }
 
-void SignalServerConnection::ServerConnectionFailure() {
+void SignalServerConnection::ServerConnectionFailure(int code, std::string& message) {
   if (callback_) {
-    callback_->OnServerConnectionFailure();
+    callback_->OnServerConnectionFailure(code, message);
   }
 }
 
