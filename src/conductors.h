@@ -47,6 +47,8 @@ class Conductors
   uint64 id() {return id_;}
   std::string id_string() const;
   static uint64 Conductors::id_from_string(std::string id_string);
+  bool server_mode() { return server_mode_;}
+  bool client_mode() { return !server_mode_;}
 
   virtual void Close();
 

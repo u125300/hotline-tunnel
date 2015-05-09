@@ -95,6 +95,8 @@ class Conductor
   // delete client socket + data channel + server socket connection
   void DeleteConnectionLane(SocketConnection* connection, rtc::scoped_refptr<HotlineDataChannel> channel);
 
+  bool server_mode() { return server_mode_; }
+  bool client_mode() { return !server_mode_; }
 
   //
   // PeerConnectionObserver implementation.

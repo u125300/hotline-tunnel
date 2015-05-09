@@ -243,7 +243,7 @@ void Conductor::OnIceCandidate(const webrtc::IceCandidateInterface* candidate) {
 
 void Conductor::OnControlDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> channel, bool is_local){
   LOG(INFO) << "Main data channel opened.";
-  if (!server_mode_) {
+  if (client_mode()) {
     if (is_local) {
       local_control_datachannel_->CreateChannel(remote_address_.ToString(), protocol_);
     }
@@ -255,7 +255,7 @@ void Conductor::OnControlDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> 
 
 void Conductor::OnControlDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel> channel, bool is_local){
   LOG(INFO) << "Main data channel cloed.";
-  if (server_mode_) {
+  if (server_mode()) {
     if (is_local){
       socket_client_.Disconnect();
     }
@@ -269,7 +269,7 @@ void Conductor::OnControlDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel
 
 
 void Conductor::OnSocketDataChannelOpen(rtc::scoped_refptr<HotlineDataChannel> channel) {
-  if (server_mode_){
+  if (server_mode()){
     CreateConnectionLane(channel);
   }
 }
@@ -316,7 +316,7 @@ void Conductor::OnServerSideReady(std::string& channel_name) {
 //
 
 void Conductor::OnSocketOpen(SocketConnection* socket){
-  if (!server_mode_){
+  if (!client_mode()){
     CreateConnectionLane(socket);
   }
 }
@@ -334,7 +334,7 @@ void Conductor::OnSocketStop(SocketConnection* socket) {
 void Conductor::ConnectToPeer() {
 
   //: Temporary
-  if (server_mode_) return;
+  if (server_mode()) return;
 
 
   if (peer_connection_.get()) {

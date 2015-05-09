@@ -56,7 +56,7 @@ void Conductors::Close() {
 //
 
 void Conductors::OnConnected() {
-  if (server_mode_) {
+  if (server_mode()) {
     signal_client_->CreateRoom(password_);
   }
   else {
@@ -75,7 +75,7 @@ void Conductors::OnCreatedRoom(std::string& room_id) {
 
 void Conductors::OnSignedIn(std::string& room_id, uint64 peer_id) {
 
-  if (server_mode_) {
+  if (server_mode()) {
     ASSERT(room_id_==room_id);
   }
 
@@ -137,6 +137,12 @@ void Conductors::OnPeerDisconnected(uint64 peer_id) {
 
   peers_offer_.erase(peer_id);
   peers_answer_.erase(peer_id);
+
+  if (client_mode()) {
+    if (peers_answer_.size() == 0 && peers_offer_.size() == 0) {
+      signal_thread_->Post(this, MsgExit);
+    }
+  }
 }
 
 void Conductors::OnReceivedOffer(Json::Value& data) {
