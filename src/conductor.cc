@@ -300,7 +300,7 @@ void Conductor::OnStopChannel(std::string& channel_name) {
 
 void Conductor::OnChannelCreated() {
   ASSERT(!server_mode_);
-  std::cout << "Connected. Socket(" << local_address_.ToString() << ") opened." << std::endl;
+  std::cout << "Connected. Local socket(" << local_address_.ToString() << ") opened." << std::endl;
 
   socket_listen_server_.Listen(local_address_, protocol_);
 }
