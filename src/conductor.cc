@@ -3,6 +3,7 @@
 
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include "talk/app/webrtc/videosourceinterface.h"
 #include "talk/media/devices/devicemanager.h"
@@ -99,13 +100,13 @@ bool Conductor::InitializePeerConnection() {
   peer_connection_factory_  = webrtc::CreatePeerConnectionFactory();
 
   if (!peer_connection_factory_.get()) {
-    printf("Error: Failed to initialize PeerConnectionFactory\n");
+    LOG(LS_ERROR) << "Failed to initialize PeerConnectionFactory";
     DeletePeerConnection();
     return false;
   }
 
   if (!CreatePeerConnection(DTLS_ON)) {
-    printf("Error: CreatePeerConnection failed\n");
+    LOG(LS_ERROR) << "CreatePeerConnection failed";
     DeletePeerConnection();
   }
   
@@ -262,6 +263,7 @@ void Conductor::OnControlDataChannelClosed(rtc::scoped_refptr<HotlineDataChannel
   }
   else {
     if (is_local) {
+      std::cout << "Disconnected. Socket(" << local_address_.ToString() << ") closed." << std::endl;
       socket_listen_server_.StopListening();
     }
   }
@@ -298,6 +300,8 @@ void Conductor::OnStopChannel(std::string& channel_name) {
 
 void Conductor::OnChannelCreated() {
   ASSERT(!server_mode_);
+  std::cout << "Connected. Socket(" << local_address_.ToString() << ") opened." << std::endl;
+
   socket_listen_server_.Listen(local_address_, protocol_);
 }
 
@@ -316,7 +320,7 @@ void Conductor::OnServerSideReady(std::string& channel_name) {
 //
 
 void Conductor::OnSocketOpen(SocketConnection* socket){
-  if (!client_mode()){
+  if (client_mode()){
     CreateConnectionLane(socket);
   }
 }
@@ -338,14 +342,14 @@ void Conductor::ConnectToPeer() {
 
 
   if (peer_connection_.get()) {
-    printf("Error: We only support connecting to one peer at a time\n");
+    LOG(LS_ERROR) << "We only support connecting to one peer at a time";
     return;
   }
 
   if (InitializePeerConnection()) {
     peer_connection_->CreateOffer(this, NULL);
   } else {
-    printf("Error: Failed to initialize PeerConnection\n");
+    LOG(LS_ERROR) << "Failed to initialize PeerConnection";
   }
 }
 
@@ -541,7 +545,6 @@ void Conductor::OnReceivedOffer(Json::Value& data) {
 
   if(!rtc::GetStringFromJsonObject(data, "peer_id", &peer_id)) {
     LOG(LS_WARNING) << "Invalid message format";
-    printf("Error: Server response error\n");
     return;
   }
 

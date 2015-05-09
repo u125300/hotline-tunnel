@@ -2,6 +2,7 @@
 
 #include <utility>
 #include <vector>
+#include <iostream>
 
 #include "conductors.h"
 #include "conductor.h"
@@ -67,9 +68,9 @@ void Conductors::OnConnected() {
 void Conductors::OnCreatedRoom(std::string& room_id) {
   ASSERT(server_mode_);
 
-  room_id_ = room_id;
-  printf("Your room id is %s\n", room_id.c_str());
+  std::cout << "Your room id is " << room_id.c_str() << "." << std::endl;
 
+  room_id_ = room_id;
   signal_client_->SignIn(room_id_, password_);
 } 
 
@@ -130,10 +131,17 @@ void Conductors::OnPeerConnected(uint64 peer_id) {
   // ConnectToPeer if offerer
   conductor_offer->ConnectToPeer();
 
+  if (server_mode()) {
+    std::cout << "Peer connected. (peerid: " << std::to_string(peer_id) << ")." << std::endl;
+  }
 }
 
 void Conductors::OnPeerDisconnected(uint64 peer_id) {
   LOG(LS_INFO) << "Peer " << std::to_string(peer_id) << " disconnected.";
+
+  if (server_mode()) {
+    std::cout << "Peer disconnected. (peerid: " << std::to_string(peer_id) << ")." << std::endl;
+  }
 
   peers_offer_.erase(peer_id);
   peers_answer_.erase(peer_id);
@@ -143,6 +151,7 @@ void Conductors::OnPeerDisconnected(uint64 peer_id) {
       signal_thread_->Post(this, MsgExit);
     }
   }
+
 }
 
 void Conductors::OnReceivedOffer(Json::Value& data) {
@@ -152,7 +161,6 @@ void Conductors::OnReceivedOffer(Json::Value& data) {
 
   if(!rtc::GetStringFromJsonObject(data, "peer_id", &peer_id)) {
     LOG(LS_WARNING) << "Invalid message format";
-    printf("Error: Server response error\n");
     return;
   }
 
@@ -168,12 +176,12 @@ void Conductors::OnReceivedOffer(Json::Value& data) {
 
 
 void Conductors::OnDisconnected() {
-  printf("Connection to signal server closed.\n");
+  std::cout << "Connection to signal server closed." << std::endl;
 }
 
 void Conductors::OnServerConnectionFailure() {
   ASSERT(signal_thread_ != NULL);
-  printf("Signal server connection error.\n");
+  std::cerr << "Signal server connection error. " << GetSignalServerName() << "." << std::endl;
   signal_thread_->Post(this, MsgExit);
 }
 
