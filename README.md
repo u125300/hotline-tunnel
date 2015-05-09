@@ -2,7 +2,7 @@ Hotline tunnel
 ==============
 
 Mini peer to peer vpn. You can easily connect to home, office and IDC network
-from outside.
+from outside without VPN server.
 
 Remote and local peers are connected directly because Hotline tunnel uses
 **NAT traversal** technology.
@@ -43,6 +43,9 @@ PC side:
 ```
 $ htunnel 9999 127.0.0.1:22 -r 12345 -p yourpassword
 Connected. Local socket(0.0.0.0:9999) opened.
+
+$ ssh 127.0.0.1 -p 9999
+Ssh client will be connected to EC2 server.
 ```
 
 On your PC, run ssh client and connect to 127.0.0.1:9999.
