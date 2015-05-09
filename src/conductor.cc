@@ -300,9 +300,14 @@ void Conductor::OnStopChannel(std::string& channel_name) {
 
 void Conductor::OnChannelCreated() {
   ASSERT(!server_mode_);
-  std::cout << "Connected. Local socket(" << local_address_.ToString() << ") opened." << std::endl;
 
-  socket_listen_server_.Listen(local_address_, protocol_);
+  if (!socket_listen_server_.Listen(local_address_, protocol_)){
+    std::cerr << "Failed to open local socket " << local_address_.ToString() << std::endl;
+    std::cerr << "Check if the port already used by another application." << std::endl;
+    return;
+  }
+
+  std::cout << "Connected. Local socket(" << local_address_.ToString() << ") opened." << std::endl;
 }
 
 void Conductor::OnServerSideReady(std::string& channel_name) {
