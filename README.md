@@ -6,7 +6,6 @@ from outside.
 
 Remote and local peers are connected directly because Hotline tunnel uses
 **NAT traversal** technology.
-
 You don't have to configiture port-forwarding or open firewall port.
 
 
@@ -27,9 +26,10 @@ If running remote peer, new room id will be displayed. In local peer set
 the room id with -r option given by remote peer.
 
 
+
 ### Example ###
 
-Connect to AMAZON EC2 ssh service from your PC without opening port 22 in
+Connect to *AMAZON EC2* ssh service from *your PC* without opening **ssh port(22)** in
 EC2 security group.
 
 EC2 side:
