@@ -19,7 +19,7 @@ $ htunnel -server [-p newpassword]
 
 Local peer:
 ```
-$ htunnel localport remotehost:port [-r room_id -p password]
+$ htunnel localport remotehost:port -r room_id [-p password -udp]
 ```
 
 If running remote peer, new room id will be displayed. In local peer set

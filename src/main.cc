@@ -7,6 +7,7 @@
 #include "webrtc/base/win32socketinit.h"
 #include "webrtc/base/win32socketserver.h"
 #include "webrtc/base/logging.h"
+#include "webrtc/system_wrappers/interface/trace.h"
 
 #include "conductors.h"
 #include "flagdefs.h"
@@ -23,6 +24,14 @@ void FatalError(const std::string& msg);
 
 
 int main(int argc, char** argv) {
+
+  //
+  // Set log and trace level.
+  //
+#ifdef _DEBUG
+  webrtc::Trace::set_level_filter(webrtc::kTraceNone);
+  rtc::LogMessage::LogToDebug(rtc::LS_ERROR+1);
+#endif // _DEBUG
 
 #if WIN32
   // Stop memory leak detection by default and start memory dection after following code
@@ -162,7 +171,7 @@ void Usage() {
   std::cerr << std::endl;
   std::cerr << "Usage" << std::endl;
   std::cerr << " Remote peer: htunnel -server [-p password]" << std::endl;
-  std::cerr << " Local  peer: htunnel localport remotehost:port -r roomid [-p password -u udp]" << std::endl;
+  std::cerr << " Local  peer: htunnel localport remotehost:port -r roomid [-p password -udp]" << std::endl;
   std::cerr << std::endl;
   std::cerr << "Example" << std::endl;
   std::cerr << " Remote: htunnel -server -p roompassword" << std::endl;
