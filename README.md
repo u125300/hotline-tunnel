@@ -4,9 +4,9 @@ Hotline tunnel
 Mini peer to peer vpn. You can easily connect to home, office and IDC network
 from outside without VPN server.
 
-Remote and local peers are connected directly because Hotline tunnel uses
+Remote and local peers are connected directly because Hotline tunnel supports
 **NAT traversal** technology.
-You don't have to configiture port-forwarding or open firewall port.
+You don't have to configiture port-forwarding or firewall ports.
 
 
 ### Usage ###
