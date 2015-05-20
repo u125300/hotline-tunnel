@@ -51,26 +51,26 @@ find_path(LIBWEBSOCKETS_INCLUDE_DIR
 # ============================================================================
 
 find_library(_LIBWEBSOCKETS_RELEASE_LIB_PATH
-  NAMES websockets_static libwebsockets
+  NAMES websockets_static websockets
   PATHS 
     ${LIBWEBSOCKETS_LIBRARY_DIR}
 )
 
 find_library(_LIBWEBSOCKETS_DEBUG_LIB_PATH
-    NAMES websockets_static libwebsockets
+    NAMES websockets_static websockets
     PATHS
       ${LIBWEBSOCKETS_DEBUG_LIBRARY_DIR}
       ${LIBWEBSOCKETS_LIBRARY_DIR}
     )
 
 find_library(_ZLIB_RELEASE_LIB_PATH
-  NAMES zlibstatic zlib
+  NAMES zlibstatic z
   PATHS 
     ${LIBWEBSOCKETS_LIBRARY_DIR}
 )
 
 find_library(_ZLIB_DEBUG_LIB_PATH
-    NAMES zlibstaticd zlibd zlibstatic zlib
+    NAMES zlibstaticd zlibd zlibstatic z
     PATHS
       ${LIBWEBSOCKETS_DEBUG_LIBRARY_DIR}
       ${LIBWEBSOCKETS_LIBRARY_DIR}
