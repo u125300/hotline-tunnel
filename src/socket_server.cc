@@ -30,7 +30,7 @@ bool SocketListenServer::Listen(const rtc::SocketAddress& address,
   // UDP socket
   //
   if (protocol == cricket::PROTO_UDP) {
-#ifdef WIN32
+#if defined(WEBRTC_WIN)
     rtc::Win32Socket* sock = new rtc::Win32Socket();
     if (!sock->CreateT(address.family(), SOCK_DGRAM)){
       LOG(LS_ERROR) << "Local port already in use or no privilege to bind port.";
@@ -38,7 +38,7 @@ bool SocketListenServer::Listen(const rtc::SocketAddress& address,
       return false;
     }
     listener_.reset(sock);
-#elif defined(POSIX)
+#elif defined(WEBRTC_POSIX)
     rtc::Thread* thread = rtc::Thread::Current();
     ASSERT(thread != NULL);
     rtc::AsyncSocket* sock = thread->socketserver()->CreateAsyncSocket(address.family(), SOCK_DGRAM);
@@ -65,7 +65,7 @@ bool SocketListenServer::Listen(const rtc::SocketAddress& address,
   // TCP socket
   //
   else if (protocol == cricket::PROTO_TCP) {
-#ifdef WIN32
+#if defined(WEBRTC_WIN)
     rtc::Win32Socket* sock = new rtc::Win32Socket();
     if (!sock->CreateT(address.family(), SOCK_STREAM)) {
       LOG(LS_ERROR) << "Local port already in use or no privilege to bind port.";
@@ -74,7 +74,7 @@ bool SocketListenServer::Listen(const rtc::SocketAddress& address,
     }
 
     listener_.reset(sock);
-#elif defined(POSIX)
+#elif defined(WEBRTC_POSIX)
     rtc::Thread* thread = rtc::Thread::Current();
     ASSERT(thread != NULL);
     rtc::AsyncSocket* sock = thread->socketserver()->CreateAsyncSocket(address.family(),

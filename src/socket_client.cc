@@ -26,7 +26,7 @@ SocketClient::~SocketClient() {
 SocketConnection* SocketClient::Connect(const rtc::SocketAddress& address,
                            const cricket::ProtocolType protocol) {
 
-#ifdef WIN32
+#if defined(WEBRTC_WIN)
   rtc::Win32Socket* sock = new rtc::Win32Socket();
 
   if (!sock->CreateT(address.family(),
@@ -35,7 +35,7 @@ SocketConnection* SocketClient::Connect(const rtc::SocketAddress& address,
     delete sock;
     return NULL;
   }
-#elif defined(POSIX)
+#elif defined(WEBRTC_POSIX)
   rtc::Thread* thread = rtc::Thread::Current();
   ASSERT(thread != NULL);
   rtc::AsyncSocket* sock = thread->socketserver()->CreateAsyncSocket(address.family(), 
