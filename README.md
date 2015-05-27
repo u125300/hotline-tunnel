@@ -26,8 +26,33 @@ If running remote peer, new room id will be displayed. In local peer set
 the room id with -r option given by remote peer.
 
 
+### Example - Retote desktop ###
+---------------
 
-### Example ###
+Connect to **VNC server** from **VNC viewer** without opening
+*vnc port(5900)* in your router or firewall.
+
+VNC server side:
+```
+$ htunnel -server -p yourpassword
+Your room id is 12345.
+```
+
+VNC viewer side:
+```
+$ htunnel 9999 192.168.0.123:5900 -r 12345 -p yourpassword
+Connected. Local socket(0.0.0.0:9999) opened.
+
+Where 192.168.0.123:5900 is the ip address:port of vnc server
+and 12345 is the room id assigned by htunnel on vnc server side.
+
+```
+
+Then run *vnc viewer* and connect to 127.0.0.1:9999.
+
+
+
+### Example - Amazon EC2 ###
 ---------------
 
 Connect to **AMAZON EC2** ssh service from **your PC** without opening
